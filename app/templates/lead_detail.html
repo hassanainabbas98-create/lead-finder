@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+
+{% block title %}{{ business.name }} - Lead Details{% endblock %}
+{% block page_title %}Lead Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Back breadcrumb & actions -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <a href="/leads" class="btn btn-sm btn-light border"><i class="bi bi-arrow-left"></i> Back to Leads</a>
+            <span class="text-muted">/</span>
+            <span class="fw-semibold text-truncate" style="max-width: 300px;">{{ business.name }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            {% if business.website %}
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="runSingleAudit({{ business.id }})">
+                <i class="bi bi-shield-check me-1"></i> Audit Website
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-primary-emerald" onclick="saveLeadDetails()">
+                <i class="bi bi-check2 me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Business Overview & Service Recommendations -->
+        <div class="col-12 col-lg-8">
+            <!-- Business Info Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <div>
+                        <h5 class="fw-bold mb-1">{{ business.name }}</h5>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <span class="badge bg-light text-dark border">{{ business.category|default('Uncategorized') }}</span>
+                            <span class="text-muted small"><i class="bi bi-geo-alt"></i> {{ business.city|default('Lahore') }}, {{ business.country|default('Pakistan') }}</span>
+                            <span class="text-muted small">&middot; Source: {{ business.source_id }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        {% if business.website %}
+                            <a href="{{ business.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Open Website
+                            </a>
+                        {% else %}
+                            <span class="badge badge-website-none py-2 px-3">No Website Listed</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Phone Number</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light"><i class="bi bi-telephone text-muted"></i></span>
+                                <input type="text" class="form-control" id="leadPhoneInput" value="{{ business.phone or '' }}" placeholder="e.g. +92 300 1234567">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-dark d-flex align-items-center justify-content-between">
+                                <span>Email / Gmail ID</span>
+                                {% if business.email and ('@gmail.' in business.email.lower() or '@googlemail.' in business.email.lower()) %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-google me-1"></i> Verified Gmail</span>
+                                {% endif %}
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+                                <input type="email" class="form-control" id="leadEmailInput" value="{{ business.email or '' }}" placeholder="e.g. business@gmail.com">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small text-muted">WhatsApp</label>
+                            <div class="fw-semibold">{{ business.whatsapp or 'Not listed' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small text-muted">Physical Address</label>
+                            <div class="fw-semibold">{{ business.address or 'Address not specified in map' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunity & Service Recommendation Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-lightbulb text-warning fs-5"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0">Opportunity Analysis & Service Pitch</h6>
+                            <small class="text-muted">Rule-based sales relevance estimation based on observable digital presence</small>
+                        </div>
+                    </div>
+                    <span class="badge {% if scoring_res.priority == 'High Priority' %}badge-opportunity-high{% elif scoring_res.priority == 'Medium Priority' %}badge-opportunity-medium{% else %}badge-opportunity-review{% endif %} px-3 py-2">
+                        {{ scoring_res.priority }} &middot; {{ scoring_res.score }}/100 pts
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Scoring Reasons Breakdown -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-dark mb-2">Score Breakdown & Audit Evidence:</label>
+                        <div class="list-group list-group-flush border rounded-3 p-2 bg-light">
+                            {% for reason in scoring_res.reasons %}
+                            <div class="list-group-item bg-transparent px-2 py-1 border-0 small d-flex align-items-start gap-2">
+                                <i class="bi bi-check-circle-fill text-success mt-1"></i>
+                                <span>{{ reason }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Suggested Digital Services -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Recommended Digital Agency Offerings:</label>
+                        <div class="p-3 bg-white rounded-3 border">
+                            <h6 class="fw-bold text-success mb-2">
+                                <i class="bi bi-stars me-1"></i> Primary: {{ recommendation_res.primary_service }}
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for svc in recommendation_res.suggested_services %}
+                                <span class="badge bg-light text-dark border py-2 px-2">{{ svc }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outreach Pitch Hook -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Suggested Outreach Pitch Value Hook:</label>
+                        <div class="p-3 bg-light rounded border text-muted small fst-italic">
+                            "{{ recommendation_res.pitch_value_hook }}"
+                        </div>
+                    </div>
+
+                    <div class="small text-muted border-top pt-2" style="font-size: 0.78rem;">
+                        <i class="bi bi-info-circle me-1"></i> <strong>Note:</strong> The opportunity score estimates sales relevance and digital gaps for your agency services. It does not guarantee purchasing intent.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Presence Audit History Card -->
+            <div class="card-modern">
+                <div class="card-header-clean">
+                    <div>
+                        <h6 class="fw-bold mb-0">Digital Presence Audit</h6>
+                        <small class="text-muted">Observable website features and contact channels</small>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    {% if latest_audit %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">Online Booking</div>
+                                <span class="badge {% if latest_audit.has_online_booking == 'Detected' %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ latest_audit.has_online_booking }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">Chatbot Widget</div>
+                                <span class="badge {% if latest_audit.has_chatbot == 'Detected' %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ latest_audit.has_chatbot }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">Online Ordering</div>
+                                <span class="badge {% if latest_audit.has_online_ordering == 'Detected' %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ latest_audit.has_online_ordering }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">Customer Portal</div>
+                                <span class="badge {% if latest_audit.has_customer_portal == 'Detected' %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ latest_audit.has_customer_portal }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">Mobile Responsive</div>
+                                <span class="badge {% if latest_audit.is_mobile_friendly == 'Detected' %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ latest_audit.is_mobile_friendly }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-2 border rounded text-center">
+                                <div class="text-muted small">HTTPS Security</div>
+                                <span class="badge {% if latest_audit.has_https %}badge-status-detected{% else %}badge-status-notdetected{% endif %} mt-1">
+                                    {{ 'Active' if latest_audit.has_https else 'No HTTPS' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% if latest_audit.evidence_notes %}
+                    <div class="small text-muted p-2 bg-light rounded border">
+                        <strong>Audit Evidence:</strong> {{ latest_audit.evidence_notes }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-globe-americas fs-2 text-secondary"></i>
+                        <p class="small mt-2 mb-0">No website audit performed yet for this business.</p>
+                        {% if business.website %}
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-3" onclick="runSingleAudit({{ business.id }})">
+                            Run Website Audit Now
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Lead Status, Notes & Outreach Tasks -->
+        <div class="col-12 col-lg-4">
+            <!-- Pipeline Management Form -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <h6 class="fw-bold mb-0">Pipeline Status</h6>
+                </div>
+                <div class="card-body p-4">
+                    <form id="leadUpdateForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Lead Status</label>
+                            <select class="form-select form-select-sm" id="leadStatus">
+                                <option value="New" {% if lead and lead.status == 'New' %}selected{% endif %}>New</option>
+                                <option value="To Review" {% if lead and lead.status == 'To Review' %}selected{% endif %}>To Review</option>
+                                <option value="Contacted" {% if lead and lead.status == 'Contacted' %}selected{% endif %}>Contacted</option>
+                                <option value="Interested" {% if lead and lead.status == 'Interested' %}selected{% endif %}>Interested</option>
+                                <option value="Follow-up Required" {% if lead and lead.status == 'Follow-up Required' %}selected{% endif %}>Follow-up Required</option>
+                                <option value="Converted" {% if lead and lead.status == 'Converted' %}selected{% endif %}>Converted</option>
+                                <option value="Not Interested" {% if lead and lead.status == 'Not Interested' %}selected{% endif %}>Not Interested</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Priority</label>
+                            <select class="form-select form-select-sm" id="leadPriority">
+                                <option value="High Priority" {% if lead and lead.priority == 'High Priority' %}selected{% endif %}>High Priority</option>
+                                <option value="Medium Priority" {% if lead and lead.priority == 'Medium Priority' %}selected{% endif %}>Medium Priority</option>
+                                <option value="Low Priority" {% if lead and lead.priority == 'Low Priority' %}selected{% endif %}>Low Priority</option>
+                                <option value="Needs Review" {% if lead and lead.priority == 'Needs Review' %}selected{% endif %}>Needs Review</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Last Contact Date</label>
+                                <input type="date" class="form-control form-control-sm" id="lastContactDate" value="{{ lead.last_contact_date if lead and lead.last_contact_date else '' }}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Next Follow-up Date</label>
+                                <input type="date" class="form-control form-control-sm" id="nextFollowUpDate" value="{{ lead.next_follow_up_date if lead and lead.next_follow_up_date else '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Proposed Service</label>
+                            <input type="text" class="form-control form-control-sm" id="offeredService" value="{{ lead.offered_service if lead and lead.offered_service else (business.suggested_service or '') }}" placeholder="e.g. Website + Booking">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Personal Outreach Notes</label>
+                            <textarea class="form-control form-control-sm" id="leadNotes" rows="4" placeholder="Record client conversation, phone notes, objections, or custom requirements...">{{ lead.notes if lead and lead.notes else '' }}</textarea>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-primary-emerald w-100" onclick="saveLeadDetails()">
+                            Save Lead Updates
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Custom Lists Membership Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <h6 class="fw-bold mb-0">Custom Lists & Campaigns</h6>
+                </div>
+                <div class="card-body p-4">
+                    {% if lead %}
+                        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                            {% if lead.list_items and lead.list_items|length > 0 %}
+                                {% for item in lead.list_items %}
+                                <span class="badge d-inline-flex align-items-center gap-2 p-2" style="background-color: {{ item.lead_list.color }}; color: #ffffff;">
+                                    {{ item.lead_list.name }}
+                                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.55rem;" onclick="removeLeadFromList({{ lead.id }}, {{ item.lead_list.id }})" title="Remove from list"></button>
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="small text-muted fst-italic">Not assigned to any custom lists yet.</span>
+                            {% endif %}
+                        </div>
+
+                        {% if available_lists and available_lists|length > 0 %}
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" id="addToListSelect">
+                                <option value="">Choose list to assign...</option>
+                                {% for l in available_lists %}
+                                    {% if l.id not in assigned_list_ids %}
+                                    <option value="{{ l.id }}">{{ l.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="addLeadToList({{ lead.id }})">
+                                <i class="bi bi-plus-lg"></i> Add
+                            </button>
+                        </div>
+                        {% else %}
+                        <small class="text-muted">No custom lists created yet. <a href="/lists">Create a list</a></small>
+                        {% endif %}
+                    {% else %}
+                        <small class="text-muted">Save this business to your pipeline first to assign it to custom campaign lists.</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Follow-up Tasks Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-check text-primary"></i>
+                        <h6 class="fw-bold mb-0">Scheduled Tasks</h6>
+                    </div>
+                    {% if lead %}
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#newTaskFormCollapse">
+                        <i class="bi bi-plus-lg"></i> Add Task
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4">
+                    {% if lead %}
+                        <!-- Collapsible Quick Task Form -->
+                        <div class="collapse mb-3" id="newTaskFormCollapse">
+                            <div class="p-3 bg-light rounded border">
+                                <h6 class="fw-bold small mb-2">Schedule New Task</h6>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="quickTaskTitle" placeholder="Task title (e.g. Call owner about website)">
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <input type="date" class="form-control form-control-sm" id="quickTaskDueDate">
+                                    </div>
+                                    <div class="col-6">
+                                        <select class="form-select form-select-sm" id="quickTaskPriority">
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                            <option value="Low">Low</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-primary-emerald w-100" onclick="createQuickTask({{ lead.id }})">
+                                    Save Task
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Existing Tasks List -->
+                        {% if tasks and tasks|length > 0 %}
+                        <div class="list-group list-group-flush border rounded">
+                            {% for t in tasks %}
+                            <div class="list-group-item d-flex align-items-start justify-content-between p-2 {% if t.is_completed %}bg-light text-muted{% endif %}">
+                                <div class="d-flex align-items-start gap-2">
+                                    <input type="checkbox" class="form-check-input mt-1" {% if t.is_completed %}checked{% endif %} onchange="toggleTaskComplete({{ t.id }}, this.checked)">
+                                    <div>
+                                        <div class="small fw-semibold {% if t.is_completed %}text-decoration-line-through{% endif %}">{{ t.title }}</div>
+                                        <small class="text-muted d-block">Due: {{ t.due_date }} &middot; {{ t.priority }}</small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm text-danger p-0 border-0" onclick="deleteTaskDirect({{ t.id }})" title="Delete task">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-3 text-muted small">
+                            No follow-up tasks scheduled yet for this lead.
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-3 text-muted small">
+                            Save this business to your pipeline first to schedule follow-up outreach tasks.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function saveLeadDetails() {
+    const payload = {
+        business_id: {{ business.id }},
+        status: document.getElementById('leadStatus').value,
+        priority: document.getElementById('leadPriority').value,
+        last_contact_date: document.getElementById('lastContactDate').value || null,
+        next_follow_up_date: document.getElementById('nextFollowUpDate').value || null,
+        offered_service: document.getElementById('offeredService').value || null,
+        notes: document.getElementById('leadNotes').value || null,
+        email: document.getElementById('leadEmailInput') ? document.getElementById('leadEmailInput').value.trim() : null,
+        phone: document.getElementById('leadPhoneInput') ? document.getElementById('leadPhoneInput').value.trim() : null
+    };
+
+    fetch('/api/leads/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', 'Lead profile updated successfully', 'success');
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast('Notice', data.detail || 'Could not update lead', 'warning');
+        }
+    })
+    .catch(() => showToast('Error', 'Server request failed', 'danger'));
+}
+
+function runSingleAudit(businessId) {
+    showToast('Auditing', 'Initiating digital presence audit...', 'info');
+    fetch('/api/audit/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: businessId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Audit Finished', 'Website inspection completed', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast('Audit Result', data.message || 'Audit encountered an issue', 'warning');
+        }
+    })
+    .catch(() => showToast('Error', 'Audit request failed', 'danger'));
+}
+
+function addLeadToList(leadId) {
+    const select = document.getElementById('addToListSelect');
+    const listId = select ? select.value : null;
+    if (!listId) {
+        showToast('Notice', 'Please choose a list to add to', 'warning');
+        return;
+    }
+
+    fetch(`/api/leads/${leadId}/add-to-list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ list_id: parseInt(listId) })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('List Updated', data.message || 'Added to list', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast('Error', data.detail || 'Failed to add to list', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Request failed', 'danger'));
+}
+
+function removeLeadFromList(leadId, listId) {
+    fetch(`/api/leads/${leadId}/remove-from-list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ list_id: parseInt(listId) })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Removed', 'Removed from list', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast('Error', data.detail || 'Failed to remove from list', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Request failed', 'danger'));
+}
+
+function createQuickTask(leadId) {
+    const titleInput = document.getElementById('quickTaskTitle');
+    const dueDateInput = document.getElementById('quickTaskDueDate');
+    const priorityInput = document.getElementById('quickTaskPriority');
+
+    if (!titleInput || !titleInput.value.trim()) {
+        showToast('Notice', 'Please provide a task title', 'warning');
+        return;
+    }
+    if (!dueDateInput || !dueDateInput.value) {
+        showToast('Notice', 'Please provide a task due date', 'warning');
+        return;
+    }
+
+    fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            saved_lead_id: leadId,
+            title: titleInput.value.trim(),
+            due_date: dueDateInput.value,
+            priority: priorityInput ? priorityInput.value : 'Medium'
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Task Created', 'Follow-up task scheduled', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast('Error', data.detail || 'Failed to create task', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Request failed', 'danger'));
+}
+
+function toggleTaskComplete(taskId, isChecked) {
+    fetch(`/api/tasks/${taskId}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_completed: isChecked })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Updated', isChecked ? 'Task marked as completed' : 'Task marked as pending', 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast('Error', data.detail || 'Could not update task', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Request failed', 'danger'));
+}
+
+function deleteTaskDirect(taskId) {
+    showConfirm('Delete Task', 'Are you sure you want to delete this task?', () => {
+        fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Deleted', 'Task removed', 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    showToast('Error', data.detail || 'Failed to delete task', 'danger');
+                }
+            })
+            .catch(() => showToast('Error', 'Request failed', 'danger'));
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}My Leads{% endblock %}
+{% block page_title %}My Leads Pipeline{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1">Lead Prospecting Pipeline</h4>
+            <p class="text-muted mb-0 small">Manage qualified businesses, record outreach status, and track sales opportunities.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/search" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1">
+                <i class="bi bi-search"></i> Discover More Leads
+            </a>
+            <a href="/export" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Export Leads
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card-modern mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="/leads" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="q" class="form-control border-start-0" placeholder="Search by name, city, category..." value="{{ request.query_params.get('q', '') }}">
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">All Pipeline Statuses</option>
+                        <option value="New" {% if request.query_params.get('status') == 'New' %}selected{% endif %}>New</option>
+                        <option value="To Review" {% if request.query_params.get('status') == 'To Review' %}selected{% endif %}>To Review</option>
+                        <option value="Contacted" {% if request.query_params.get('status') == 'Contacted' %}selected{% endif %}>Contacted</option>
+                        <option value="Interested" {% if request.query_params.get('status') == 'Interested' %}selected{% endif %}>Interested</option>
+                        <option value="Follow-up Required" {% if request.query_params.get('status') == 'Follow-up Required' %}selected{% endif %}>Follow-up Required</option>
+                        <option value="Converted" {% if request.query_params.get('status') == 'Converted' %}selected{% endif %}>Converted</option>
+                        <option value="Not Interested" {% if request.query_params.get('status') == 'Not Interested' %}selected{% endif %}>Not Interested</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">All Priorities</option>
+                        <option value="High Priority" {% if request.query_params.get('priority') == 'High Priority' %}selected{% endif %}>High Priority</option>
+                        <option value="Medium Priority" {% if request.query_params.get('priority') == 'Medium Priority' %}selected{% endif %}>Medium Priority</option>
+                        <option value="Low Priority" {% if request.query_params.get('priority') == 'Low Priority' %}selected{% endif %}>Low Priority</option>
+                        <option value="Needs Review" {% if request.query_params.get('priority') == 'Needs Review' %}selected{% endif %}>Needs Review</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 text-end">
+                    <a href="/leads" class="btn btn-sm btn-light border w-100">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leads Table Card -->
+    <div class="card-modern">
+        <div class="card-header-clean">
+            <div>
+                <h6 class="fw-bold mb-0">Saved Prospects</h6>
+                <small class="text-muted">Total: {{ leads|length }} saved lead{{ 's' if leads|length != 1 else '' }}</small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if leads and leads|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-modern table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Business</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Service Offered</th>
+                            <th>Website</th>
+                            <th>Follow-up</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in leads %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">
+                                    <a href="/leads/view/{{ lead.business.id }}" class="text-decoration-none text-dark">{{ lead.business.name }}</a>
+                                </div>
+                                <div>
+                                    {% if lead.business.email %}
+                                        {% if '@gmail.' in lead.business.email.lower() or '@googlemail.' in lead.business.email.lower() %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 me-1" title="Gmail ID">
+                                                <i class="bi bi-google me-1"></i> {{ lead.business.email }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 me-1">
+                                                <i class="bi bi-envelope-at me-1"></i> {{ lead.business.email }}
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                    <small class="text-muted"><i class="bi bi-telephone me-1"></i> {{ lead.business.phone|default('No phone') }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ lead.business.city|default('Lahore') }}, {{ lead.business.country|default('') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary">{{ lead.status }}</span>
+                            </td>
+                            <td>
+                                {% if lead.priority == 'High Priority' %}
+                                    <span class="badge badge-opportunity-high">High</span>
+                                {% elif lead.priority == 'Medium Priority' %}
+                                    <span class="badge badge-opportunity-medium">Medium</span>
+                                {% else %}
+                                    <span class="badge badge-opportunity-low">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-truncate d-inline-block" style="max-width: 140px;">
+                                    {{ lead.offered_service or lead.business.suggested_service or 'Web Dev' }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if lead.business.website %}
+                                    <a href="{{ lead.business.website }}" target="_blank" rel="noopener noreferrer" class="badge badge-website-found text-decoration-none">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge badge-website-none">None</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ lead.next_follow_up_date or '-' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/leads/view/{{ lead.business.id }}" class="btn btn-light border py-1" title="View & Edit Lead">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger py-1" onclick="deleteLeadConfirm({{ lead.id }})" title="Remove from pipeline">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-people empty-state-icon"></i>
+                <h6 class="fw-bold">No Leads Saved Yet</h6>
+                <p class="text-muted small mb-3">You haven't saved any businesses to your pipeline yet. Discover businesses and save them with one click.</p>
+                <a href="/search" class="btn btn-sm btn-primary-emerald">
+                    <i class="bi bi-search me-1"></i> Discover Prospects Now
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteLeadConfirm(leadId) {
+    showConfirm('Remove Lead', 'Are you sure you want to remove this lead from your pipeline?', () => {
+        fetch(`/api/leads/${leadId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Removed', 'Lead removed successfully', 'success');
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    showToast('Error', data.detail || 'Could not delete lead', 'danger');
+                }
+            })
+            .catch(() => showToast('Error', 'Server request failed', 'danger'));
+    });
+}
+</script>
+{% endblock %}

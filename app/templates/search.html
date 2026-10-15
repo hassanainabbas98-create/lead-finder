@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Find Businesses{% endblock %}
+{% block page_title %}Find Businesses & Prospect Discovery{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Status / Notification Alerts -->
+    {% if status_message %}
+    <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4 d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+        <div>
+            <strong>OpenStreetMap Discovery:</strong> {{ status_message }}
+            {% if total_found is defined and total_found > 0 %}
+                &mdash; <span class="badge bg-success text-white">{{ new_count }} new businesses added</span>, {{ total_found }} matching records displayed.
+            {% endif %}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if error_message %}
+    <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4 d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+        <div>
+            <strong>Discovery Notice:</strong> {{ error_message }}
+            <div class="small text-muted mt-1">
+                Tip: Verify the city and country spelling, or try another target category. Overpass API community servers may occasionally experience heavy traffic.
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Search Form Card -->
+    <div class="card-modern mb-4">
+        <div class="card-header-clean">
+            <div>
+                <h6 class="fw-bold mb-0">Discover Local Businesses</h6>
+                <small class="text-muted">Query OpenStreetMap Overpass API for verified businesses and digital presence signals</small>
+            </div>
+            <a href="/about" class="text-decoration-none small text-muted"><i class="bi bi-info-circle me-1"></i> Data Source Policy</a>
+        </div>
+        <div class="card-body p-4">
+            <form id="searchForm" method="GET" action="/search" onsubmit="handleSearchSubmit()">
+                <div class="row g-3">
+                    <!-- Category / Keyword -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small fw-semibold">Business Category or Keyword <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-tag text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="categoryInput" name="category" 
+                                   value="{{ request.query_params.get('category', '') }}" 
+                                   placeholder="e.g. Barber shops, Clinic, Restaurant" required>
+                        </div>
+                        <div class="form-text small">Pre-mapped: Barber, Clinic, Doctor, Restaurant, Hotel, School, Real Estate.</div>
+                    </div>
+
+                    <!-- City -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small fw-semibold">City <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="cityInput" name="city" 
+                                   value="{{ request.query_params.get('city', '') }}" 
+                                   placeholder="e.g. Lahore, Dubai, New York" required>
+                        </div>
+                    </div>
+
+                    <!-- Country -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small fw-semibold">Country <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-globe text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="countryInput" name="country" 
+                                   value="{{ request.query_params.get('country', '') }}" 
+                                   placeholder="e.g. Pakistan, UAE, USA" required>
+                        </div>
+                    </div>
+
+                    <!-- Max Results -->
+                    <div class="col-12 col-md-2">
+                        <label class="form-label small fw-semibold">Max Results</label>
+                        <select class="form-select" name="max_results">
+                            <option value="25" {% if request.query_params.get('max_results') == '25' %}selected{% endif %}>25 records</option>
+                            <option value="50" {% if request.query_params.get('max_results', '50') == '50' %}selected{% endif %}>50 records</option>
+                            <option value="100" {% if request.query_params.get('max_results') == '100' %}selected{% endif %}>100 records</option>
+                            <option value="200" {% if request.query_params.get('max_results') == '200' %}selected{% endif %}>200 records</option>
+                        </select>
+                    </div>
+
+                    <!-- Advanced Filters & Actions -->
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between pt-2 border-top gap-2">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    <span class="small fw-semibold text-muted">Website Filter:</span>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="website_filter" id="filterAll" value="all" 
+                                               {% if request.query_params.get('website_filter', 'all') == 'all' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="filterAll">All Records</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="website_filter" id="filterNoWebsite" value="no_website"
+                                               {% if request.query_params.get('website_filter') == 'no_website' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="filterNoWebsite"><strong class="text-purple">No Website Listed</strong></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="website_filter" id="filterHasWebsite" value="has_website"
+                                               {% if request.query_params.get('website_filter') == 'has_website' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="filterHasWebsite">Has Website</label>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    <span class="small fw-semibold text-muted">Contact Filter:</span>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="contact_filter" id="contactAll" value="all" 
+                                               {% if request.query_params.get('contact_filter', 'all') == 'all' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="contactAll">All Contacts</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="contact_filter" id="contactGmail" value="has_gmail"
+                                               {% if request.query_params.get('contact_filter') == 'has_gmail' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="contactGmail"><strong class="text-danger"><i class="bi bi-google me-1"></i> Has Gmail ID</strong></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="contact_filter" id="contactEmail" value="has_email"
+                                               {% if request.query_params.get('contact_filter') == 'has_email' %}checked{% endif %}>
+                                        <label class="form-check-label small" for="contactEmail">Has Any Email</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <a href="/search" class="btn btn-light border btn-sm">Clear Filters</a>
+                                <button type="submit" class="btn btn-primary-emerald btn-sm px-4" id="submitSearchBtn">
+                                    <i class="bi bi-search me-1"></i> Discover Businesses
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Live Discovery Loader Banner (hidden by default) -->
+    <div id="searchLoadingBanner" class="alert alert-info shadow-sm d-none mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <div>
+                <strong>Querying OpenStreetMap Overpass servers...</strong>
+                <div class="small text-muted">Resolving bounding coordinates and retrieving live business tags. This typically takes 2-8 seconds depending on server load.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results Section -->
+    <div class="card-modern">
+        <div class="card-header-clean">
+            <div>
+                <h6 class="fw-bold mb-0">Search Results</h6>
+                <small class="text-muted">
+                    {% if results is defined and results|length > 0 %}
+                        Showing {{ results|length }} business record{{ 's' if results|length != 1 else '' }}
+                    {% else %}
+                        Enter search criteria above or view stored records
+                    {% endif %}
+                </small>
+            </div>
+            {% if results is defined and results|length > 0 %}
+            <div class="d-flex gap-2">
+                <a href="/api/export/businesses?category={{ request.query_params.get('category', '') }}&city={{ request.query_params.get('city', '') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i> Export Matching Discovered CSV</a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            {% if results is defined and results|length > 0 %}
+
+            <!-- Batch Actions Bar (shown when >= 1 row selected) -->
+            <div id="batchActionsBar" class="p-3 bg-light border-bottom d-none d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success px-2 py-1" id="selectedCountBadge">0 selected</span>
+                    <span class="small text-muted">Select an action for highlighted businesses:</span>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    {% if available_lists and available_lists|length > 0 %}
+                    <select id="batchTargetList" class="form-select form-select-sm" style="width: auto;">
+                        <option value="">(Save to Pipeline directly)</option>
+                        {% for l in available_lists %}
+                        <option value="{{ l.id }}">Add to List: {{ l.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1" onclick="batchSaveSelected()">
+                        <i class="bi bi-bookmark-plus"></i> Save Selected to Leads
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="batchAuditSelected()">
+                        <i class="bi bi-shield-check"></i> Audit Selected
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="batchExportSelected()">
+                        <i class="bi bi-download"></i> Export Selected CSV
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light border" onclick="clearAllSelections()">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-modern table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;" class="text-center">
+                                <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" title="Select all businesses">
+                            </th>
+                            <th>Business Name</th>
+                            <th>Category</th>
+                            <th>Location / Address</th>
+                            <th>Phone / Contact</th>
+                            <th>Website Status</th>
+                            <th>Opportunity Priority</th>
+                            <th>Suggested Service</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in results %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input row-select-checkbox" value="{{ item.id }}" onchange="onRowCheckboxChange()">
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-truncate" style="max-width: 220px;">
+                                    <a href="/leads/view/{{ item.id }}" class="text-decoration-none text-dark">{{ item.name }}</a>
+                                </div>
+                                <small class="text-muted">{{ item.source_id }}</small>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ item.category|default('Uncategorized') }}</span></td>
+                            <td>
+                                <div class="small text-truncate" style="max-width: 200px;">{{ item.address or item.city }}</div>
+                                <small class="text-muted">{{ item.city }}, {{ item.country }}</small>
+                            </td>
+                            <td>
+                                {% if item.phone %}
+                                    <div class="small"><i class="bi bi-telephone text-muted me-1"></i> {{ item.phone }}</div>
+                                {% endif %}
+                                {% if item.email %}
+                                    {% if '@gmail.' in item.email.lower() or '@googlemail.' in item.email.lower() %}
+                                        <div class="small mt-1">
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1" title="Gmail ID">
+                                                <i class="bi bi-google me-1"></i> {{ item.email }}
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <div class="small mt-1">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1" title="Business Email">
+                                                <i class="bi bi-envelope-at me-1"></i> {{ item.email }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                {% if item.whatsapp %}
+                                    <div class="small mt-1"><i class="bi bi-whatsapp text-success me-1"></i> {{ item.whatsapp }}</div>
+                                {% endif %}
+                                {% if not item.phone and not item.email and not item.whatsapp %}
+                                    <small class="text-muted fst-italic">None listed in OSM</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.website %}
+                                    <a href="{{ item.website }}" target="_blank" rel="noopener noreferrer" class="badge badge-website-found text-decoration-none">
+                                        <i class="bi bi-link-45deg me-1"></i> Listed
+                                    </a>
+                                {% else %}
+                                    <span class="badge badge-website-none">No Website</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.opportunity_priority == 'High Priority' %}
+                                    <span class="badge badge-opportunity-high">High ({{ item.opportunity_score }} pts)</span>
+                                {% elif item.opportunity_priority == 'Medium Priority' %}
+                                    <span class="badge badge-opportunity-medium">Medium ({{ item.opportunity_score }} pts)</span>
+                                {% else %}
+                                    <span class="badge badge-opportunity-review">Review ({{ item.opportunity_score }} pts)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-truncate d-inline-block" style="max-width: 170px;">
+                                    {{ item.suggested_service|default('Website Development') }}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/leads/view/{{ item.id }}" class="btn btn-light border py-1" title="View Lead Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-success py-1" onclick="saveLeadQuick({{ item.id }})" title="Save to My Leads">
+                                        <i class="bi bi-bookmark-plus"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-search empty-state-icon"></i>
+                <h6 class="fw-bold">Ready to Prospect</h6>
+                <p class="text-muted small mb-3">Fill out the search form above to discover matching businesses from OpenStreetMap data.</p>
+                <div class="small text-muted">
+                    Example search: Category: <code>Barber shops</code>, City: <code>Lahore</code>, Country: <code>Pakistan</code>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Job Progress Modal -->
+<div class="modal fade" id="jobProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-semibold" id="jobProgressModalTitle">Background Processing</h5>
+            </div>
+            <div class="modal-body py-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold text-muted" id="jobProgressStatusText">Initializing...</span>
+                    <span class="badge bg-primary" id="jobProgressPercentBadge">0%</span>
+                </div>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div id="jobProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                </div>
+                <p class="small text-muted mb-0" id="jobProgressDetail">Please wait while the worker thread processes the task.</p>
+            </div>
+            <div class="modal-footer border-top d-none" id="jobProgressModalFooter">
+                <button type="button" class="btn btn-sm btn-primary-emerald" data-bs-dismiss="modal" onclick="window.location.reload()">
+                    Done & Refresh Results
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function handleSearchSubmit() {
+    const banner = document.getElementById('searchLoadingBanner');
+    const btn = document.getElementById('submitSearchBtn');
+    if (banner) banner.classList.remove('d-none');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Searching...';
+    }
+}
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('.row-select-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function onRowCheckboxChange() {
+    const selected = getSelectedIds();
+    const countBadge = document.getElementById('selectedCountBadge');
+    const bar = document.getElementById('batchActionsBar');
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    const totalRows = document.querySelectorAll('.row-select-checkbox').length;
+
+    if (countBadge) countBadge.textContent = `${selected.length} selected`;
+    if (bar) {
+        if (selected.length > 0) {
+            bar.classList.remove('d-none');
+        } else {
+            bar.classList.add('d-none');
+        }
+    }
+    if (selectAllCb) {
+        selectAllCb.checked = (totalRows > 0 && selected.length === totalRows);
+        selectAllCb.indeterminate = (selected.length > 0 && selected.length < totalRows);
+    }
+}
+
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.row-select-checkbox');
+    checkboxes.forEach(cb => { cb.checked = checked; });
+    onRowCheckboxChange();
+}
+
+function clearAllSelections() {
+    toggleSelectAll(false);
+}
+
+function batchSaveSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Notice', 'Please select at least one business first', 'warning');
+        return;
+    }
+
+    const listSelect = document.getElementById('batchTargetList');
+    const listId = listSelect && listSelect.value ? parseInt(listSelect.value) : null;
+
+    fetch('/api/leads/batch-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_ids: ids, list_id: listId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Batch Saved', `${data.saved_count} business(es) saved to My Leads`, 'success');
+            clearAllSelections();
+        } else {
+            showToast('Error', data.detail || 'Could not save selected leads', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Batch save request failed', 'danger'));
+}
+
+function batchExportSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Notice', 'Please select at least one business to export', 'warning');
+        return;
+    }
+
+    fetch('/api/export/selected-businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_ids: ids })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Export failed');
+        return res.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `selected_businesses_${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('Export Complete', `Exported ${ids.length} selected businesses`, 'success');
+    })
+    .catch(() => showToast('Error', 'Export request failed', 'danger'));
+}
+
+function pollJobStatus(jobId, onComplete) {
+    const modalEl = document.getElementById('jobProgressModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    const progressBar = document.getElementById('jobProgressBar');
+    const percentBadge = document.getElementById('jobProgressPercentBadge');
+    const statusText = document.getElementById('jobProgressStatusText');
+    const detailText = document.getElementById('jobProgressDetail');
+    const footer = document.getElementById('jobProgressModalFooter');
+    footer.classList.add('d-none');
+
+    const interval = setInterval(() => {
+        fetch(`/api/jobs/${jobId}`)
+            .then(res => res.json())
+            .then(job => {
+                const pct = job.progress || 0;
+                progressBar.style.width = `${pct}%`;
+                percentBadge.textContent = `${pct}%`;
+                statusText.textContent = job.status.toUpperCase();
+                detailText.textContent = job.message || '';
+
+                if (job.status === 'completed') {
+                    clearInterval(interval);
+                    progressBar.classList.remove('progress-bar-animated');
+                    progressBar.classList.add('bg-success');
+                    footer.classList.remove('d-none');
+                    if (onComplete) onComplete(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(interval);
+                    progressBar.classList.remove('progress-bar-animated', 'bg-success');
+                    progressBar.classList.add('bg-danger');
+                    detailText.innerHTML = `<span class="text-danger fw-semibold">${job.error || 'Job encountered an error'}</span>`;
+                    footer.classList.remove('d-none');
+                }
+            })
+            .catch(() => {
+                clearInterval(interval);
+                detailText.textContent = 'Connection error while checking job status.';
+                footer.classList.remove('d-none');
+            });
+    }, 800);
+}
+
+function batchAuditSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Notice', 'Please select at least one business to audit', 'warning');
+        return;
+    }
+
+    fetch('/api/jobs/audit-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_ids: ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.job_id) {
+            document.getElementById('jobProgressModalTitle').textContent = `Auditing ${ids.length} Selected Businesses`;
+            pollJobStatus(data.job_id, (job) => {
+                showToast('Audit Complete', `Audited ${ids.length} businesses`, 'success');
+            });
+        } else {
+            showToast('Error', data.detail || 'Could not start batch audit', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Request failed', 'danger'));
+}
+
+function saveLeadQuick(businessId) {
+    fetch('/api/leads/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: businessId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Saved to Pipeline', data.message || 'Lead added to pipeline', 'success');
+        } else {
+            showToast('Notice', data.detail || 'Lead already in pipeline', 'warning');
+        }
+    })
+    .catch(err => {
+        showToast('Error', 'Failed to save lead', 'danger');
+    });
+}
+</script>
+{% endblock %}

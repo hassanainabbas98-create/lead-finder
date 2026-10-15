@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}About & Data Sources{% endblock %}
+{% block page_title %}About & Data Governance{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
+            <!-- Data Sources & Attribution Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <h5 class="fw-bold mb-0">OpenStreetMap Data & Attribution</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p>
+                        Business Opportunity Finder discovers physical business entities using open data provided by 
+                        <strong>OpenStreetMap (OSM)</strong> and accessed via community <strong>Overpass API</strong> endpoints.
+                    </p>
+                    <div class="alert alert-light border p-3 small mb-3">
+                        <strong>OpenStreetMap Attribution:</strong><br>
+                        Data is &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, made available under the Open Database License (ODbL).
+                    </div>
+                    <h6 class="fw-bold mt-4 mb-2">Responsible Usage & Politeness:</h6>
+                    <ul class="text-muted small ps-3 mb-0">
+                        <li>We respect community Overpass API servers by utilizing rotating mirror servers, client-side rate-limiting, and cached responses.</li>
+                        <li>We do not scrape Google Maps web pages or bypass external access restrictions.</li>
+                        <li>Search results are limited to sensible batch counts to prevent server strain.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Honest Limitations & Prospecting Disclosures -->
+            <div class="card-modern">
+                <div class="card-header-clean">
+                    <h5 class="fw-bold mb-0">Prospecting Realities & Limitations</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-dark"><i class="bi bi-info-circle text-primary me-2"></i>Coverage Varies by City and Country</h6>
+                            <p class="text-muted small mb-0">
+                                OpenStreetMap coverage depends on community volunteer mapping. Some cities (e.g. Lahore, Dubai, London) have active mapping communities with thousands of listings, while other regions may have sparse records. The application cannot guarantee all businesses in a city will be found.
+                            </p>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-dark"><i class="bi bi-globe-slash text-warning me-2"></i>"No Website Listed" vs "Has No Website"</h6>
+                            <p class="text-muted small mb-0">
+                                When a record shows <em>No Website Listed</em>, it means the OpenStreetMap contributor did not tag a website URL for that entity. It does not definitively prove the business has no web presence. Similarly, an inaccessible website during checking does not imply the company lacks an online presence permanently.
+                            </p>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-dark"><i class="bi bi-robot text-purple me-2"></i>Detection Caveats (Chatbots & Voice Agents)</h6>
+                            <p class="text-muted small mb-0">
+                                The website audit inspects public HTML for common chat scripts and booking widgets. A status of <em>Not Detected</em> means no known widget signatures were found; custom or unlisted tools might still be active. Furthermore, AI voice agents cannot be detected via website scraping.
+                            </p>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-dark"><i class="bi bi-shield-check text-success me-2"></i>Ethical Outreach & Privacy</h6>
+                            <p class="text-muted small mb-0">
+                                Only public business contact details (business phone numbers, official inquiry emails) are retrieved. Users are responsible for complying with local regulations (such as CAN-SPAM, GDPR, and anti-telemarketing rules) when reaching out to prospective clients.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Architecture Summary -->
+        <div class="col-12 col-xl-4">
+            <div class="card-modern mb-4">
+                <div class="card-header-clean">
+                    <h6 class="fw-bold mb-0">Architecture Overview</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="small mb-3">
+                        <strong>Backend:</strong> FastAPI with Python 3.12 &amp; Uvicorn
+                    </div>
+                    <div class="small mb-3">
+                        <strong>Frontend:</strong> Jinja2 templates, Bootstrap 5.3, Bootstrap Icons, Vanilla JS
+                    </div>
+                    <div class="small mb-3">
+                        <strong>Database:</strong> SQLite with SQLAlchemy 2.0 ORM
+                    </div>
+                    <div class="small mb-3">
+                        <strong>Discovery Layer:</strong> Overpass API with multi-endpoint fallback
+                    </div>
+                    <div class="small mb-3">
+                        <strong>Security:</strong> SSRF guard with private IP range blocking &amp; safe CSV formula escaping
+                    </div>
+                    <div class="small text-muted border-top pt-2">
+                        Designed for 100% local Windows execution without requiring Docker, cloud databases, or paid API keys.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

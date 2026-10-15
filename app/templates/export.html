@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Export Center{% endblock %}
+{% block page_title %}CSV Export Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1">Data Export Center</h4>
+            <p class="text-muted mb-0 small">Download your prospect records, lead notes, and website audit data as clean, safe CSV files for spreadsheet software.</p>
+        </div>
+    </div>
+
+    <!-- Security Note -->
+    <div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center gap-3">
+        <i class="bi bi-shield-check text-success fs-3"></i>
+        <div class="small">
+            <strong>Spreadsheet Formula Injection Safeguard:</strong> All exported fields are automatically escaped and sanitized. Any field values starting with <code>=</code>, <code>+</code>, <code>-</code>, or <code>@</code> are safely escaped to prevent formula execution in Microsoft Excel, LibreOffice, or Google Sheets.
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Export Saved Leads Card -->
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card-modern h-100 p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon green mb-3">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">My Saved Leads</h5>
+                    <p class="text-muted small mb-3">
+                        Exports your curated pipeline including business name, category, location, phone, email, status, priority, opportunity score, suggested service, and personal notes.
+                    </p>
+                </div>
+                <div>
+                    <a href="/api/export/leads" class="btn btn-primary-emerald w-100 d-inline-flex justify-content-center align-items-center gap-2">
+                        <i class="bi bi-download"></i> Export All Saved Leads (.csv)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Discovered Businesses Card -->
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card-modern h-100 p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon blue mb-3">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">All Discovered Businesses</h5>
+                    <p class="text-muted small mb-3">
+                        Exports all businesses retrieved from OpenStreetMap discovery queries, including coordinates, source IDs, phone, website status, and detected contact channels.
+                    </p>
+                </div>
+                <div>
+                    <a href="/api/export/businesses" class="btn btn-light border w-100 d-inline-flex justify-content-center align-items-center gap-2">
+                        <i class="bi bi-download"></i> Export All Discovered (.csv)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Website Audits Card -->
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card-modern h-100 p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon purple mb-3">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Website Audit Results</h5>
+                    <p class="text-muted small mb-3">
+                        Exports comprehensive digital presence audit logs: URL, HTTP response status, online booking presence, chatbot detection, online ordering, and mobile friendliness.
+                    </p>
+                </div>
+                <div>
+                    <a href="/api/export/audits" class="btn btn-light border w-100 d-inline-flex justify-content-center align-items-center gap-2">
+                        <i class="bi bi-download"></i> Export All Audits (.csv)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtered Pipeline Export Options Card -->
+    <div class="card-modern mb-4">
+        <div class="card-header-clean">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-funnel text-success fs-5"></i>
+                <div>
+                    <h6 class="fw-bold mb-0">Targeted Segment & Campaign Exports</h6>
+                    <small class="text-muted">Generate filtered CSV files for specific sales campaigns and priority tiers</small>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <!-- Export by Priority -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold">Export by Opportunity Priority</label>
+                    <div class="d-grid gap-2">
+                        <a href="/api/export/leads?priority=High+Priority" class="btn btn-sm btn-outline-danger text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-fire me-1"></i> High Priority Leads</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <a href="/api/export/leads?priority=Medium+Priority" class="btn btn-sm btn-outline-warning text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-dash-circle me-1"></i> Medium Priority Leads</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <a href="/api/export/leads?priority=Needs+Review" class="btn btn-sm btn-outline-secondary text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-question-circle me-1"></i> Needs Review Leads</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Export by Status -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold">Export by Pipeline Stage</label>
+                    <div class="d-grid gap-2">
+                        <a href="/api/export/leads?status=New" class="btn btn-sm btn-light border text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-star me-1 text-primary"></i> New Uncontacted</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <a href="/api/export/leads?status=Contacted" class="btn btn-sm btn-light border text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-telephone-outbound me-1 text-info"></i> Contacted Leads</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <a href="/api/export/leads?status=Interested" class="btn btn-sm btn-light border text-start d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-hand-thumbs-up me-1 text-success"></i> Interested Prospects</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Export by Custom Campaign List -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold">Export by Custom Campaign List</label>
+                    <div class="p-3 bg-light rounded border">
+                        {% if lists and lists|length > 0 %}
+                        <div class="mb-2">
+                            <select id="exportCampaignListSelect" class="form-select form-select-sm">
+                                {% for l in lists %}
+                                <option value="{{ l.id }}">{{ l.name }} ({{ l.items|length }} leads)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary-emerald w-100" onclick="downloadSelectedListCsv()">
+                            <i class="bi bi-download me-1"></i> Export Selected List CSV
+                        </button>
+                        {% else %}
+                        <div class="small text-muted py-2">
+                            No custom campaign lists created yet.
+                            <div class="mt-1"><a href="/lists" class="text-success fw-medium">Create a list</a></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function downloadSelectedListCsv() {
+    const select = document.getElementById('exportCampaignListSelect');
+    if (!select || !select.value) {
+        showToast('Notice', 'Please select a campaign list', 'warning');
+        return;
+    }
+    window.location.href = `/api/export/leads?list_id=${select.value}`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,348 @@
+/* Business Opportunity Finder - Modern SaaS Theme */
+:root {
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-light: #ecfdf5;
+  --primary-text: #065f46;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover: #1e293b;
+  --sidebar-active-bg: rgba(16, 185, 129, 0.15);
+  --sidebar-active-text: #34d399;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+}
+
+/* Sidebar styling */
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--sidebar-bg);
+  min-height: 100vh;
+  transition: width 0.25s ease, transform 0.25s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1040;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebar .brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid #1e293b;
+  color: #f8fafc;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+.sidebar.collapsed .brand-text {
+  display: none;
+}
+
+.sidebar-nav {
+  padding: 1rem 0.75rem;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.sidebar-nav .nav-header {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 700;
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+
+.sidebar.collapsed .nav-header {
+  display: none;
+}
+
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  color: var(--sidebar-text);
+  border-radius: 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+  margin-bottom: 0.2rem;
+}
+
+.sidebar-nav .nav-link i {
+  font-size: 1.2rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.sidebar-nav .nav-link:hover {
+  background-color: var(--sidebar-hover);
+  color: #ffffff;
+}
+
+.sidebar-nav .nav-link.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 600;
+}
+
+.sidebar.collapsed .nav-text {
+  display: none;
+}
+
+/* Main Content Area */
+.main-wrapper {
+  margin-left: var(--sidebar-width);
+  flex-grow: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.25s ease;
+}
+
+.main-wrapper.expanded {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+/* Topbar */
+.topbar {
+  height: 64px;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+/* Page content */
+.page-content {
+  padding: 1.75rem 1.75rem 3rem;
+  flex-grow: 1;
+}
+
+/* Modern Card */
+.card-modern {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-modern:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.card-modern .card-header-clean {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Statistics Cards */
+.stat-card {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-icon.green {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.stat-icon.blue {
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+
+.stat-icon.amber {
+  background-color: #fffbeb;
+  color: #f59e0b;
+}
+
+.stat-icon.purple {
+  background-color: #faf5ff;
+  color: #a855f7;
+}
+
+.stat-icon.red {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+/* Buttons */
+.btn-primary-emerald {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.btn-primary-emerald:hover, .btn-primary-emerald:focus {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #ffffff;
+}
+
+/* Badges */
+.badge-opportunity-high {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.badge-opportunity-medium {
+  background-color: #fef3c7;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.badge-opportunity-low {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+
+.badge-opportunity-review {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.badge-website-found {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-website-none {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.badge-website-down {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-status-detected {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-status-notdetected {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.badge-status-unknown {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+/* Tables */
+.table-modern {
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.table-modern th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.85rem 1rem;
+  background-color: #f8fafc;
+}
+
+.table-modern td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.table-modern tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 1090;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.show {
+    transform: translateX(0);
+  }
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+}

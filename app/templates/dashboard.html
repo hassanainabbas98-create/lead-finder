@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Prospecting Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Welcome Header & Quick Action -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1">Welcome to Business Opportunity Finder</h4>
+            <p class="text-muted mb-0 small">Discover local businesses, analyze digital gaps, and identify prospects for web design & AI automation.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/search" class="btn btn-primary-emerald d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-search"></i> Discover Businesses
+            </a>
+            <a href="/tasks" class="btn btn-light border d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-calendar-check"></i> View Tasks
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Discovered Businesses</div>
+                    <h3 class="fw-bold mb-0 mt-1">{{ stats.total_businesses|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="bi bi-globe-slash"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">No Listed Website</div>
+                    <h3 class="fw-bold mb-0 mt-1">{{ stats.no_website_count|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="bi bi-person-check"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Saved Leads</div>
+                    <h3 class="fw-bold mb-0 mt-1">{{ stats.total_leads|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon amber">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Pending Tasks</div>
+                    <h3 class="fw-bold mb-0 mt-1">{{ stats.pending_tasks|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Row: Recent Discoveries & Pending Follow-ups -->
+    <div class="row g-4 mb-4">
+        <!-- Recent Discoveries Table -->
+        <div class="col-12 col-xl-8">
+            <div class="card-modern h-100">
+                <div class="card-header-clean">
+                    <div>
+                        <h6 class="fw-bold mb-0">Recent Business Discoveries</h6>
+                        <small class="text-muted">Latest businesses retrieved from local discovery queries</small>
+                    </div>
+                    <a href="/search" class="btn btn-sm btn-light border">Search More</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_businesses and recent_businesses|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-modern table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Business Name</th>
+                                    <th>Category</th>
+                                    <th>Location</th>
+                                    <th>Website</th>
+                                    <th>Priority</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for b in recent_businesses %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-truncate" style="max-width: 200px;">
+                                            <a href="/leads/view/{{ b.id }}" class="text-decoration-none text-dark">{{ b.name }}</a>
+                                        </div>
+                                        <small class="text-muted">{{ b.phone|default('No phone') }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ b.category|default('Uncategorized') }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="small text-muted">{{ b.city|default('Unknown') }}, {{ b.country|default('') }}</span>
+                                    </td>
+                                    <td>
+                                        {% if b.website %}
+                                            <a href="{{ b.website }}" target="_blank" rel="noopener noreferrer" class="badge badge-website-found text-decoration-none">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Listed
+                                            </a>
+                                        {% else %}
+                                            <span class="badge badge-website-none">No Website</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if b.opportunity_priority == 'High Priority' %}
+                                            <span class="badge badge-opportunity-high">High</span>
+                                        {% elif b.opportunity_priority == 'Medium Priority' %}
+                                            <span class="badge badge-opportunity-medium">Medium</span>
+                                        {% else %}
+                                            <span class="badge badge-opportunity-review">Review</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="/leads/view/{{ b.id }}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="View details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-compass empty-state-icon"></i>
+                        <h6 class="fw-bold">No Businesses Discovered Yet</h6>
+                        <p class="text-muted small mb-3">Start by running your first OpenStreetMap search to find local businesses in your target city.</p>
+                        <a href="/search" class="btn btn-sm btn-primary-emerald">
+                            <i class="bi bi-search me-1"></i> Start First Search
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Follow-up Tasks & Quick Outreach Column -->
+        <div class="col-12 col-xl-4">
+            <div class="card-modern h-100">
+                <div class="card-header-clean">
+                    <div>
+                        <h6 class="fw-bold mb-0">Upcoming Follow-ups</h6>
+                        <small class="text-muted">Actionable outreach reminders</small>
+                    </div>
+                    <a href="/tasks" class="btn btn-sm btn-light border"><i class="bi bi-plus-lg"></i></a>
+                </div>
+                <div class="card-body p-3">
+                    {% if upcoming_tasks and upcoming_tasks|length > 0 %}
+                    <div class="list-group list-group-flush">
+                        {% for t in upcoming_tasks %}
+                        <div class="list-group-item px-0 py-2 border-bottom">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <h6 class="mb-1 fw-semibold small">{{ t.title }}</h6>
+                                <span class="badge {% if t.priority == 'High' %}bg-danger-subtle text-danger{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                                    {{ t.priority }}
+                                </span>
+                            </div>
+                            <p class="mb-1 text-muted small text-truncate">{{ t.description|default('No task notes') }}</p>
+                            <small class="text-muted"><i class="bi bi-calendar3 me-1"></i> Due: {{ t.due_date }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-check2-circle fs-3 text-secondary"></i>
+                        <p class="small mt-2 mb-0">No pending follow-ups due right now.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Target Services Overview -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="fw-bold small mb-2 text-uppercase text-muted" style="letter-spacing: 0.05em;">Target Digital Services</h6>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="badge bg-light text-dark border">Website Development</span>
+                            <span class="badge bg-light text-dark border">Appointment Booking</span>
+                            <span class="badge bg-light text-dark border">AI Chatbots</span>
+                            <span class="badge bg-light text-dark border">AI Voice Agents</span>
+                            <span class="badge bg-light text-dark border">Online Ordering</span>
+                            <span class="badge bg-light text-dark border">School/Hotel CMS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

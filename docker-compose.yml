@@ -1,0 +1,17 @@
+services:
+  lead-finder:
+    build: .
+    container_name: business-opportunity-finder
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - APP_ENV=production
+      - DEBUG=False
+      - SECRET_KEY=lead-finder-secret-key-2026
+      - DATABASE_URL=sqlite:///./opportunity_finder.db
+    volumes:
+      # Persist database file on host drive so your leads and pipeline data are never lost
+      - ./opportunity_finder.db:/app/opportunity_finder.db

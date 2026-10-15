@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Lists{% endblock %}
+{% block page_title %}Saved Prospect Lists{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1">Custom Prospect Lists</h4>
+            <p class="text-muted mb-0 small">Group businesses into targeted campaigns (e.g. "Lahore Barber Shops", "Peshawar Clinics").</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#createListModal">
+            <i class="bi bi-plus-lg"></i> Create New List
+        </button>
+    </div>
+
+    <!-- Lists Grid -->
+    <div class="row g-3">
+        {% if lists and lists|length > 0 %}
+            {% for l in lists %}
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card-modern h-100 p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge" style="background-color: {{ l.color }}; color: #ffffff;">Campaign List</span>
+                            <span class="badge bg-light text-dark border">{{ l.items|length }} lead{{ 's' if l.items|length != 1 else '' }}</span>
+                        </div>
+                        <h5 class="fw-bold mb-2">{{ l.name }}</h5>
+                        <p class="text-muted small mb-3">{{ l.description or 'No description provided.' }}</p>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <small class="text-muted">Created {{ l.created_at.strftime('%Y-%m-%d') }}</small>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/leads?list_id={{ l.id }}" class="btn btn-sm btn-outline-secondary" title="View Leads in this list">
+                                    <i class="bi bi-eye me-1"></i> View
+                                </a>
+                                <a href="/api/export/leads?list_id={{ l.id }}" class="btn btn-sm btn-light border" title="Export this list as CSV">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteListConfirm({{ l.id }}, '{{ l.name }}')" title="Delete this list">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card-modern p-5 text-center">
+                    <i class="bi bi-bookmark-plus empty-state-icon"></i>
+                    <h6 class="fw-bold">No Custom Lists Created</h6>
+                    <p class="text-muted small mb-3">Create lists to group your outreach prospects by target city or industry campaign.</p>
+                    <button type="button" class="btn btn-sm btn-primary-emerald" data-bs-toggle="modal" data-bs-target="#createListModal">
+                        Create First List
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create List Modal -->
+<div class="modal fade" id="createListModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-semibold">Create New Prospect List</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/api/lists/create" method="POST" id="createListForm">
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">List Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Lahore Barber Shops" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Outreach campaign details or criteria"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tag Color</label>
+                        <select name="color" class="form-select">
+                            <option value="#10b981" selected>Emerald Green (#10b981)</option>
+                            <option value="#3b82f6">Ocean Blue (#3b82f6)</option>
+                            <option value="#6366f1">Indigo (#6366f1)</option>
+                            <option value="#8b5cf6">Purple (#8b5cf6)</option>
+                            <option value="#f59e0b">Amber Orange (#f59e0b)</option>
+                            <option value="#ef4444">Rose Red (#ef4444)</option>
+                            <option value="#64748b">Slate Gray (#64748b)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-emerald">Create List</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteListConfirm(listId, listName) {
+    showConfirm('Delete List', `Are you sure you want to delete the list "${listName}"? Leads assigned to this list will not be deleted from your pipeline.`, () => {
+        fetch(`/api/lists/${listId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Deleted', 'List deleted successfully', 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    showToast('Error', data.detail || 'Could not delete list', 'danger');
+                }
+            })
+            .catch(() => showToast('Error', 'Request failed', 'danger'));
+    });
+}
+</script>
+{% endblock %}

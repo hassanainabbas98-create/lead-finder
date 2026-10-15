@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Rules{% endblock %}
+{% block page_title %}Settings & Service Rules{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1">Service Recommendation Rules & Settings</h4>
+            <p class="text-muted mb-0 small">Customize how business categories map to your digital services (Websites, Chatbots, Booking, AI Agents).</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+            <i class="bi bi-plus-lg"></i> Add Industry Mapping
+        </button>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Industry Mapping Table -->
+        <div class="col-12 col-xl-8">
+            <div class="card-modern">
+                <div class="card-header-clean">
+                    <div>
+                        <h6 class="fw-bold mb-0">Active Industry Recommendation Rules</h6>
+                        <small class="text-muted">Transparent rules used to generate pitch recommendations for prospects</small>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-modern align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Recommended Digital Services</th>
+                                    <th>Pitch Value Hook</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in rules %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark border fw-bold text-uppercase">{{ r.category_keyword }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            {{ r.services_list|join(', ') if r.services_list else r.services }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ r.pitch_hook or 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success-subtle text-success">Active</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Parameters Card -->
+        <div class="col-12 col-xl-4">
+            <div class="card-modern">
+                <div class="card-header-clean">
+                    <h6 class="fw-bold mb-0">System Configuration</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold">Local Database</label>
+                        <div class="small fw-bold">SQLite (opportunity_finder.db)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold">Data Discovery Source</label>
+                        <div class="small fw-bold">OpenStreetMap (Overpass API)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold">Audit Timeout</label>
+                        <div class="small fw-bold">10 seconds per request</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold">SSRF Protection</label>
+                        <div class="small text-success fw-bold"><i class="bi bi-shield-check"></i> Private IP & Loopback Filter Active</div>
+                    </div>
+                    <div class="pt-2 border-top">
+                        <small class="text-muted">To adjust server ports or timeout parameters, edit your local <code>.env</code> file.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Rule Modal -->
+<div class="modal fade" id="addRuleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-semibold">Add Industry Recommendation Rule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/api/settings/rules" method="POST" id="addRuleForm">
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Category Keyword <span class="text-danger">*</span></label>
+                        <input type="text" name="category_keyword" class="form-control" placeholder="e.g. gym, bakery, dentist" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Recommended Services (Comma separated) <span class="text-danger">*</span></label>
+                        <textarea name="services" class="form-control" rows="2" placeholder="e.g. Gym membership portal, Class booking calendar, WhatsApp support bot" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Pitch Value Proposition</label>
+                        <textarea name="pitch_hook" class="form-control" rows="2" placeholder="e.g. Automate gym check-ins and member sign-ups online."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-emerald">Save Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
