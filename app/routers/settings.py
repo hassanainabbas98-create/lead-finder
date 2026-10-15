@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.rules import ServiceRule
+from app.models.rules import ServiceRule, AppSetting
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -17,6 +17,8 @@ templates = Jinja2Templates(directory="app/templates")
 def get_settings_page(request: Request, db: Session = Depends(get_db)):
     """Render Settings & Service Rules configuration page."""
     rules = db.query(ServiceRule).order_by(ServiceRule.category_keyword.asc()).all()
+    webhook_setting = db.query(AppSetting).filter(AppSetting.key == "n8n_webhook_url").first()
+    webhook_url = webhook_setting.value if webhook_setting else ""
 
     # Parse JSON services list for display
     rules_data = []
@@ -41,8 +43,26 @@ def get_settings_page(request: Request, db: Session = Depends(get_db)):
         context={
             "active_page": "settings",
             "rules": rules_data,
+            "webhook_url": webhook_url,
         },
     )
+
+
+@router.post("/api/settings/webhook")
+def save_webhook_setting(
+    webhook_url: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Save or update n8n Webhook URL configuration."""
+    url_clean = webhook_url.strip()
+    setting = db.query(AppSetting).filter(AppSetting.key == "n8n_webhook_url").first()
+    if not setting:
+        setting = AppSetting(key="n8n_webhook_url", value=url_clean)
+        db.add(setting)
+    else:
+        setting.value = url_clean
+    db.commit()
+    return RedirectResponse(url="/settings?saved=webhook", status_code=303)
 
 
 @router.post("/api/settings/rules")
@@ -71,3 +91,4 @@ def add_service_rule(
 
     db.commit()
     return RedirectResponse(url="/settings", status_code=303)
+

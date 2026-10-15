@@ -27,3 +27,15 @@ class ServiceRule(Base):
     pitch_hook = Column(Text, nullable=True)  # Value proposition context
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utc_now, nullable=False)
+
+
+class AppSetting(Base):
+    """Generic application configuration storage (e.g. n8n webhook URL)."""
+
+    __tablename__ = "app_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+

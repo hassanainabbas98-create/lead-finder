@@ -169,8 +169,18 @@
                 </small>
             </div>
             {% if results is defined and results|length > 0 %}
-            <div class="d-flex gap-2">
-                <a href="/api/export/businesses?category={{ request.query_params.get('category', '') }}&city={{ request.query_params.get('city', '') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i> Export Matching Discovered CSV</a>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="View switch">
+                    <button type="button" class="btn btn-outline-secondary active" id="viewBtnTable" onclick="switchSearchView('table')">
+                        <i class="bi bi-table me-1"></i> Table
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="viewBtnMap" onclick="switchSearchView('map')">
+                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> Map View
+                    </button>
+                </div>
+                <a href="/api/export/businesses?category={{ request.query_params.get('category', '') }}&city={{ request.query_params.get('city', '') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-download me-1"></i> Export Matching Discovered CSV
+                </a>
             </div>
             {% endif %}
         </div>
@@ -195,6 +205,9 @@
                     <button type="button" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1" onclick="batchSaveSelected()">
                         <i class="bi bi-bookmark-plus"></i> Save Selected to Leads
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1" onclick="batchDispatchWebhook('discovered')">
+                        <i class="bi bi-send-fill text-primary"></i> 🚀 Dispatch to n8n Webhook
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="batchAuditSelected()">
                         <i class="bi bi-shield-check"></i> Audit Selected
                     </button>
@@ -207,12 +220,14 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-modern table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px;" class="text-center">
-                                <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" title="Select all businesses">
+            <!-- Table View -->
+            <div id="tableViewWrapper">
+                <div class="table-responsive">
+                    <table class="table table-modern table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" title="Select all businesses">
                             </th>
                             <th>Business Name</th>
                             <th>Category</th>
@@ -305,6 +320,22 @@
                     </tbody>
                 </table>
             </div>
+            </div><!-- /#tableViewWrapper -->
+
+            <!-- Map View -->
+            <div id="mapViewWrapper" class="d-none">
+                <div class="p-3 border-bottom bg-light d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-geo-alt-fill text-danger fs-5"></i>
+                        <div>
+                            <strong class="small d-block">OpenStreetMap Geographic Prospect Map</strong>
+                            <span class="text-muted small" style="font-size: 0.78rem;">Click any pin to inspect business metrics, phone/email, or save directly to pipeline.</span>
+                        </div>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" id="mapPinCountBadge">Plotting locations...</span>
+                </div>
+                <div id="mapContainer" style="height: 600px; width: 100%;"></div>
+            </div>
             {% else %}
             <div class="empty-state">
                 <i class="bi bi-search empty-state-icon"></i>
@@ -344,6 +375,31 @@
         </div>
     </div>
 </div>
+
+{% if results is defined and results|length > 0 %}
+<script id="searchResultsJson" type="application/json">
+[
+    {% for item in results %}
+    {
+        "id": {{ item.id }},
+        "name": {{ item.name | tojson }},
+        "category": {{ (item.category or 'Business') | tojson }},
+        "city": {{ (item.city or '') | tojson }},
+        "address": {{ (item.address or '') | tojson }},
+        "phone": {{ (item.phone or '') | tojson }},
+        "email": {{ (item.email or '') | tojson }},
+        "whatsapp": {{ (item.whatsapp or '') | tojson }},
+        "website": {{ (item.website or '') | tojson }},
+        "opportunity_priority": {{ (item.opportunity_priority or 'Needs Review') | tojson }},
+        "opportunity_score": {{ item.opportunity_score or 0 }},
+        "suggested_service": {{ (item.suggested_service or 'Website Development') | tojson }},
+        "latitude": {{ item.latitude if item.latitude is not none else 'null' }},
+        "longitude": {{ item.longitude if item.longitude is not none else 'null' }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -538,6 +594,128 @@ function saveLeadQuick(businessId) {
     .catch(err => {
         showToast('Error', 'Failed to save lead', 'danger');
     });
+}
+
+// Leaflet Map View Logic
+let searchMap = null;
+let markersLayer = null;
+
+function switchSearchView(view) {
+    const tableWrapper = document.getElementById('tableViewWrapper');
+    const mapWrapper = document.getElementById('mapViewWrapper');
+    const btnTable = document.getElementById('viewBtnTable');
+    const btnMap = document.getElementById('viewBtnMap');
+
+    if (view === 'map') {
+        if (tableWrapper) tableWrapper.classList.add('d-none');
+        if (mapWrapper) mapWrapper.classList.remove('d-none');
+        if (btnTable) btnTable.classList.remove('active');
+        if (btnMap) btnMap.classList.add('active');
+
+        initSearchMap();
+    } else {
+        if (mapWrapper) mapWrapper.classList.add('d-none');
+        if (tableWrapper) tableWrapper.classList.remove('d-none');
+        if (btnTable) btnTable.classList.add('active');
+        if (btnMap) btnMap.classList.remove('active');
+    }
+}
+
+function initSearchMap() {
+    const dataEl = document.getElementById('searchResultsJson');
+    if (!dataEl) return;
+
+    let items = [];
+    try {
+        items = JSON.parse(dataEl.textContent);
+    } catch (e) {
+        console.error('Failed to parse search results JSON', e);
+        return;
+    }
+
+    if (!searchMap) {
+        searchMap = L.map('mapContainer').setView([34.015, 71.525], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+        }).addTo(searchMap);
+        markersLayer = L.featureGroup().addTo(searchMap);
+    }
+
+    // Refresh size when unhidden
+    setTimeout(() => {
+        if (searchMap) searchMap.invalidateSize();
+    }, 150);
+
+    markersLayer.clearLayers();
+
+    const validItems = items.filter(i => i.latitude !== null && i.longitude !== null);
+    const pinBadge = document.getElementById('mapPinCountBadge');
+    if (pinBadge) pinBadge.textContent = `${validItems.length} locations mapped`;
+
+    if (validItems.length === 0) {
+        showToast('Map Notice', 'No businesses with geographic coordinates found in this result set', 'warning');
+        return;
+    }
+
+    validItems.forEach(item => {
+        let badgeColor = 'bg-secondary';
+        if (item.opportunity_priority === 'High Priority') badgeColor = 'bg-danger';
+        else if (item.opportunity_priority === 'Medium Priority') badgeColor = 'bg-warning text-dark';
+
+        const popupHtml = `
+            <div style="min-width: 230px; font-family: system-ui, sans-serif;">
+                <div class="fw-bold mb-1 fs-6">${item.name}</div>
+                <div class="mb-2">
+                    <span class="badge bg-light text-dark border">${item.category || 'Local Business'}</span>
+                    <span class="badge ${badgeColor}">${item.opportunity_priority || 'Review'} (${item.opportunity_score} pts)</span>
+                </div>
+                <div class="small text-muted mb-1"><i class="bi bi-geo-alt me-1 text-danger"></i>${item.address || item.city || 'Address on map'}</div>
+                ${item.phone ? `<div class="small mb-1"><i class="bi bi-telephone text-muted me-1"></i><a href="tel:${item.phone}" class="text-decoration-none">${item.phone}</a></div>` : ''}
+                ${item.email ? `<div class="small mb-1"><i class="bi bi-envelope text-muted me-1"></i>${item.email}</div>` : ''}
+                <div class="small mb-2">
+                    ${item.website ? `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-link-45deg"></i> Has Website</span>` : `<span class="badge bg-purple-subtle text-purple border border-purple-subtle">No Website Listed</span>`}
+                </div>
+                <div class="small text-muted mb-2"><strong>Suggested:</strong> ${item.suggested_service}</div>
+                <div class="d-flex gap-1 mt-2 pt-2 border-top">
+                    <a href="/leads/view/${item.id}" class="btn btn-sm btn-outline-secondary w-50 py-1" style="font-size: 0.78rem;">Profile</a>
+                    <button type="button" class="btn btn-sm btn-success w-50 py-1" style="font-size: 0.78rem;" onclick="saveLeadQuick(${item.id})"><i class="bi bi-bookmark-plus me-1"></i> Save</button>
+                </div>
+            </div>
+        `;
+
+        const marker = L.marker([item.latitude, item.longitude]);
+        marker.bindPopup(popupHtml);
+        markersLayer.addLayer(marker);
+    });
+
+    if (validItems.length > 0) {
+        searchMap.fitBounds(markersLayer.getBounds().pad(0.15));
+    }
+}
+
+// Batch Webhook Dispatcher
+function batchDispatchWebhook(source = 'discovered') {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Notice', 'Please select at least one business to dispatch', 'warning');
+        return;
+    }
+
+    fetch('/api/webhook/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_ids: ids, source: source })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('n8n Webhook Dispatched 🚀', `${data.dispatched_count} lead(s) dispatched to: ${data.webhook_url}`, 'success');
+        } else {
+            showToast('Webhook Notice', data.detail || 'Could not dispatch to webhook. Please configure your Webhook URL in Settings.', 'warning');
+        }
+    })
+    .catch(() => showToast('Error', 'Failed to dispatch webhook request', 'danger'));
 }
 </script>
 {% endblock %}

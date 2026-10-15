@@ -10,7 +10,18 @@
             <h4 class="fw-bold mb-1">Lead Prospecting Pipeline</h4>
             <p class="text-muted mb-0 small">Manage qualified businesses, record outreach status, and track sales opportunities.</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Pipeline view switcher">
+                <button type="button" class="btn btn-outline-secondary active" id="leadsViewBtnTable" onclick="switchLeadsView('table')">
+                    <i class="bi bi-table me-1"></i> List Table
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="leadsViewBtnKanban" onclick="switchLeadsView('kanban')">
+                    <i class="bi bi-kanban me-1 text-primary"></i> Kanban Pipeline
+                </button>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1" onclick="dispatchAllFilteredLeads()">
+                <i class="bi bi-send-fill text-primary"></i> 🚀 Dispatch to n8n
+            </button>
             <a href="/search" class="btn btn-sm btn-primary-emerald d-inline-flex align-items-center gap-1">
                 <i class="bi bi-search"></i> Discover More Leads
             </a>
@@ -66,9 +77,62 @@
                 <small class="text-muted">Total: {{ leads|length }} saved lead{{ 's' if leads|length != 1 else '' }}</small>
             </div>
         </div>
+{% macro render_lead_card(lead) %}
+<div class="kanban-card" id="leadCard-{{ lead.id }}" data-lead-id="{{ lead.id }}" data-business-id="{{ lead.business.id }}" data-lead-name="{{ lead.business.name }}" draggable="true" ondragstart="onKanbanDragStart(event)" ondragend="onKanbanDragEnd(event)">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <a href="/leads/view/{{ lead.business.id }}" class="fw-bold text-dark text-decoration-none small text-truncate d-block" style="max-width: 190px;" title="{{ lead.business.name }}">
+            {{ lead.business.name }}
+        </a>
+        {% if lead.priority == 'High Priority' %}
+            <span class="badge badge-opportunity-high" style="font-size: 0.65rem;">High</span>
+        {% elif lead.priority == 'Medium Priority' %}
+            <span class="badge badge-opportunity-medium" style="font-size: 0.65rem;">Med</span>
+        {% else %}
+            <span class="badge badge-opportunity-low" style="font-size: 0.65rem;">Low</span>
+        {% endif %}
+    </div>
+    <div class="small text-muted mb-2">
+        <span class="badge bg-light text-dark border" style="font-size: 0.68rem;">{{ lead.business.category or 'Business' }}</span>
+        <span class="text-muted ms-1" style="font-size: 0.72rem;">{{ lead.business.city or '' }}</span>
+    </div>
+    {% if lead.business.email %}
+    <div class="mb-1 text-truncate" style="font-size: 0.72rem;">
+        {% if '@gmail.' in lead.business.email.lower() %}
+            <span class="text-danger fw-semibold"><i class="bi bi-google me-1"></i>{{ lead.business.email }}</span>
+        {% else %}
+            <span class="text-primary"><i class="bi bi-envelope me-1"></i>{{ lead.business.email }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% if lead.business.phone %}
+    <div class="mb-2 text-muted text-truncate" style="font-size: 0.72rem;">
+        <i class="bi bi-telephone me-1"></i>{{ lead.business.phone }}
+    </div>
+    {% endif %}
+    <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+        <small class="text-truncate text-muted" style="max-width: 140px; font-size: 0.72rem;">
+            {{ lead.offered_service or lead.business.suggested_service or 'Website Development' }}
+        </small>
+        <div class="btn-group btn-group-sm">
+            <a href="/leads/view/{{ lead.business.id }}" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.72rem;" title="View & Pitch">
+                <i class="bi bi-eye"></i>
+            </a>
+            {% if lead.business.phone %}
+            {% set clean_p = lead.business.phone | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
+            <a href="https://wa.me/{{ clean_p }}" target="_blank" class="btn btn-sm btn-light border py-0 px-2 text-success" style="font-size: 0.72rem;" title="WhatsApp">
+                <i class="bi bi-whatsapp"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
         <div class="card-body p-0">
             {% if leads and leads|length > 0 %}
-            <div class="table-responsive">
+            <!-- Table View -->
+            <div id="leadsTableViewWrapper">
+                <div class="table-responsive">
                 <table class="table table-modern table-hover align-middle mb-0">
                     <thead>
                         <tr>
@@ -151,6 +215,77 @@
                     </tbody>
                 </table>
             </div>
+            </div><!-- /#leadsTableViewWrapper -->
+
+            <!-- Visual Kanban Drag-and-Drop Board View -->
+            <div id="leadsKanbanViewWrapper" class="d-none p-3">
+                <div class="kanban-board">
+                    <!-- Column 1: New Prospects -->
+                    <div class="kanban-column" data-status="New" ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, 'New')">
+                        <div class="kanban-column-header">
+                            <span class="fw-bold small"><i class="bi bi-circle-fill text-primary me-1" style="font-size: 0.6rem;"></i> New Leads</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" id="kanbanCount-New">0</span>
+                        </div>
+                        <div class="kanban-cards" id="kanbanCards-New">
+                            {% for lead in leads if lead.status == 'New' %}
+                                {{ render_lead_card(lead) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Contacted -->
+                    <div class="kanban-column" data-status="Contacted" ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, 'Contacted')">
+                        <div class="kanban-column-header">
+                            <span class="fw-bold small"><i class="bi bi-circle-fill text-info me-1" style="font-size: 0.6rem;"></i> Contacted</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill" id="kanbanCount-Contacted">0</span>
+                        </div>
+                        <div class="kanban-cards" id="kanbanCards-Contacted">
+                            {% for lead in leads if lead.status == 'Contacted' %}
+                                {{ render_lead_card(lead) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column 3: In Discussion / Interested -->
+                    <div class="kanban-column" data-status="Interested" ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, 'Interested')">
+                        <div class="kanban-column-header">
+                            <span class="fw-bold small"><i class="bi bi-circle-fill text-warning me-1" style="font-size: 0.6rem;"></i> In Discussion</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" id="kanbanCount-Interested">0</span>
+                        </div>
+                        <div class="kanban-cards" id="kanbanCards-Interested">
+                            {% for lead in leads if lead.status in ['Interested', 'Follow-up Required'] %}
+                                {{ render_lead_card(lead) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column 4: Converted / Won -->
+                    <div class="kanban-column" data-status="Converted" ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, 'Converted')">
+                        <div class="kanban-column-header">
+                            <span class="fw-bold small"><i class="bi bi-circle-fill text-success me-1" style="font-size: 0.6rem;"></i> Closed - Won</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" id="kanbanCount-Converted">0</span>
+                        </div>
+                        <div class="kanban-cards" id="kanbanCards-Converted">
+                            {% for lead in leads if lead.status == 'Converted' %}
+                                {{ render_lead_card(lead) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Column 5: Lost / Passed -->
+                    <div class="kanban-column" data-status="Not Interested" ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, 'Not Interested')">
+                        <div class="kanban-column-header">
+                            <span class="fw-bold small"><i class="bi bi-circle-fill text-secondary me-1" style="font-size: 0.6rem;"></i> Lost / Passed</span>
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill" id="kanbanCount-NotInterested">0</span>
+                        </div>
+                        <div class="kanban-cards" id="kanbanCards-NotInterested">
+                            {% for lead in leads if lead.status in ['Not Interested', 'To Review'] %}
+                                {{ render_lead_card(lead) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
             {% else %}
             <div class="empty-state">
                 <i class="bi bi-people empty-state-icon"></i>
@@ -183,5 +318,137 @@ function deleteLeadConfirm(leadId) {
             .catch(() => showToast('Error', 'Server request failed', 'danger'));
     });
 }
+
+// Kanban View Switcher & Drag-and-Drop Pipeline
+let draggedLeadId = null;
+
+function switchLeadsView(view) {
+    const tableWrap = document.getElementById('leadsTableViewWrapper');
+    const kanbanWrap = document.getElementById('leadsKanbanViewWrapper');
+    const btnTable = document.getElementById('leadsViewBtnTable');
+    const btnKanban = document.getElementById('leadsViewBtnKanban');
+
+    if (view === 'kanban') {
+        if (tableWrap) tableWrap.classList.add('d-none');
+        if (kanbanWrap) kanbanWrap.classList.remove('d-none');
+        if (btnTable) btnTable.classList.remove('active');
+        if (btnKanban) btnKanban.classList.add('active');
+        localStorage.setItem('leads_view_mode', 'kanban');
+        updateKanbanCounts();
+    } else {
+        if (kanbanWrap) kanbanWrap.classList.add('d-none');
+        if (tableWrap) tableWrap.classList.remove('d-none');
+        if (btnTable) btnTable.classList.add('active');
+        if (btnKanban) btnKanban.classList.remove('active');
+        localStorage.setItem('leads_view_mode', 'table');
+    }
+}
+
+function updateKanbanCounts() {
+    const statuses = ['New', 'Contacted', 'Interested', 'Converted', 'NotInterested'];
+    statuses.forEach(s => {
+        const cardsCont = document.getElementById(`kanbanCards-${s}`);
+        const badge = document.getElementById(`kanbanCount-${s}`);
+        if (cardsCont && badge) {
+            badge.textContent = cardsCont.children.length;
+        }
+    });
+}
+
+function onKanbanDragStart(event) {
+    const card = event.currentTarget;
+    draggedLeadId = card.getAttribute('data-lead-id');
+    card.classList.add('dragging');
+    event.dataTransfer.setData('text/plain', draggedLeadId);
+    event.dataTransfer.effectAllowed = 'move';
+}
+
+function onKanbanDragEnd(event) {
+    const card = event.currentTarget;
+    card.classList.remove('dragging');
+    document.querySelectorAll('.kanban-cards').forEach(c => c.classList.remove('drag-over'));
+}
+
+function onKanbanDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const cardsCont = event.currentTarget.querySelector('.kanban-cards');
+    if (cardsCont) cardsCont.classList.add('drag-over');
+}
+
+function onKanbanDragLeave(event) {
+    const cardsCont = event.currentTarget.querySelector('.kanban-cards');
+    if (cardsCont) cardsCont.classList.remove('drag-over');
+}
+
+function onKanbanDrop(event, targetStatus) {
+    event.preventDefault();
+    document.querySelectorAll('.kanban-cards').forEach(c => c.classList.remove('drag-over'));
+    const leadId = event.dataTransfer.getData('text/plain') || draggedLeadId;
+    if (!leadId) return;
+
+    const card = document.getElementById(`leadCard-${leadId}`);
+    if (!card) return;
+
+    let targetContainerKey = targetStatus;
+    if (targetStatus === 'Not Interested') targetContainerKey = 'NotInterested';
+    const targetCards = document.getElementById(`kanbanCards-${targetContainerKey}`);
+    if (targetCards) {
+        targetCards.appendChild(card);
+        updateKanbanCounts();
+    }
+
+    const leadName = card.getAttribute('data-lead-name') || 'Lead';
+
+    // Persist status change via AJAX
+    fetch(`/api/leads/${leadId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Pipeline Updated', `${leadName} moved to ${targetStatus}`, 'success');
+        } else {
+            showToast('Error', data.detail || 'Failed to update lead status', 'danger');
+        }
+    })
+    .catch(() => showToast('Error', 'Status update request failed', 'danger'));
+}
+
+// Dispatch all currently loaded leads to n8n Webhook
+function dispatchAllFilteredLeads() {
+    const cards = document.querySelectorAll('.kanban-card');
+    const ids = Array.from(cards).map(c => parseInt(c.getAttribute('data-business-id')));
+    if (ids.length === 0) {
+        showToast('Notice', 'No leads available to dispatch', 'warning');
+        return;
+    }
+
+    fetch('/api/webhook/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_ids: ids, source: 'leads_pipeline' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('n8n Webhook Dispatched 🚀', `${data.dispatched_count} leads sent to: ${data.webhook_url}`, 'success');
+        } else {
+            showToast('Webhook Notice', data.detail || 'Could not dispatch to webhook. Please configure your Webhook URL in Settings.', 'warning');
+        }
+    })
+    .catch(() => showToast('Error', 'Failed to dispatch webhook request', 'danger'));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedMode = localStorage.getItem('leads_view_mode') || 'table';
+    if (savedMode === 'kanban') {
+        switchLeadsView('kanban');
+    } else {
+        updateKanbanCounts();
+    }
+});
 </script>
 {% endblock %}

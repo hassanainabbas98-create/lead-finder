@@ -35,7 +35,34 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bsAlert) bsAlert.close();
         }, 5000);
     });
+
+    // Theme toggle handling (Light / Dark Mode)
+    const themeBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeToggleIcon');
+
+    function updateThemeIcon(theme) {
+        if (!themeIcon) return;
+        if (theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+        } else {
+            themeIcon.className = 'bi bi-moon-stars text-secondary';
+        }
+    }
+
+    const currentTheme = localStorage.getItem('leadfinder_theme') || 'light';
+    updateThemeIcon(currentTheme);
+
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const activeTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+            const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-bs-theme', nextTheme);
+            localStorage.setItem('leadfinder_theme', nextTheme);
+            updateThemeIcon(nextTheme);
+        });
+    }
 });
+
 
 /**
  * Trigger a modern Bootstrap toast notification

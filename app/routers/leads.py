@@ -1,6 +1,8 @@
 """Leads management router."""
 
 from typing import Optional, List
+from datetime import datetime, timezone
+import httpx
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -12,10 +14,18 @@ from app.models.business import Business, BusinessContact
 from app.models.lead import SavedLead, LeadList, LeadListItem
 from app.models.audit import WebsiteAudit
 from app.models.task import FollowUpTask
-from app.schemas.lead import SaveLeadRequest, UpdateLeadRequest, BatchSaveLeadsRequest
+from app.models.rules import AppSetting
+from app.schemas.lead import (
+    SaveLeadRequest,
+    UpdateLeadRequest,
+    BatchSaveLeadsRequest,
+    UpdateLeadStatusRequest,
+    WebhookDispatchRequest,
+)
 from app.services.scoring import OpportunityScoringEngine
 from app.services.recommendation import ServiceRecommendationEngine
 from app.services.discovery import get_category_search_variants
+
 
 router = APIRouter()
 
@@ -291,3 +301,139 @@ def delete_lead(
     db.delete(lead)
     db.commit()
     return {"success": True, "message": "Lead deleted from pipeline"}
+
+
+@router.post("/api/leads/{lead_id}/status")
+def update_lead_status(
+    lead_id: int,
+    payload: UpdateLeadStatusRequest,
+    db: Session = Depends(get_db),
+):
+    """Quickly update lead status (e.g. from Kanban drag-and-drop)."""
+    lead = db.query(SavedLead).filter(SavedLead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    lead.status = payload.status
+    db.commit()
+    return {
+        "success": True,
+        "lead_id": lead.id,
+        "status": lead.status,
+        "message": f"Moved to {lead.status}",
+    }
+
+
+@router.post("/api/webhook/dispatch")
+def dispatch_to_webhook(
+    payload: WebhookDispatchRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Dispatch selected business records directly to an external n8n or custom webhook.
+    Sends structured business data including contacts, opportunity priority, and suggested services.
+    """
+    webhook_url = payload.custom_webhook_url
+    if not webhook_url or not webhook_url.strip():
+        setting = db.query(AppSetting).filter(AppSetting.key == "n8n_webhook_url").first()
+        if setting and setting.value and setting.value.strip():
+            webhook_url = setting.value.strip()
+
+    if not webhook_url:
+        raise HTTPException(
+            status_code=400,
+            detail="No n8n Webhook URL configured. Please set your Webhook URL in Settings first."
+        )
+
+    # If test ping with empty business_ids
+    if not payload.business_ids:
+        test_payload = {
+            "event": "ping_test",
+            "source": payload.source or "settings_test",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "message": "Connection test from Business Opportunity Finder",
+            "sample_lead": {
+                "name": "Sample Business Prospect",
+                "category": "Restaurant",
+                "city": "Peshawar",
+                "country": "Pakistan",
+                "phone": "+92 300 1234567",
+                "email": "prospect@example.com",
+                "website_status": "No Website Listed",
+                "opportunity_score": 85,
+                "opportunity_priority": "High Priority",
+                "suggested_service": "Online Food Ordering & Website",
+            }
+        }
+        try:
+            with httpx.Client(timeout=8.0) as client:
+                res = client.post(webhook_url, json=test_payload)
+                return {
+                    "success": res.status_code < 400,
+                    "dispatched_count": 1,
+                    "webhook_url": webhook_url,
+                    "status_code": res.status_code,
+                    "message": f"Test ping sent to {webhook_url} (HTTP {res.status_code})",
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "webhook_url": webhook_url,
+                "detail": f"Failed to connect to webhook: {str(e)}",
+            }
+
+    # Fetch matching businesses
+    businesses = db.query(Business).filter(Business.id.in_(payload.business_ids)).all()
+    if not businesses:
+        raise HTTPException(status_code=404, detail="No matching businesses found to dispatch")
+
+    leads_payload = []
+    for b in businesses:
+        lead = db.query(SavedLead).filter(SavedLead.business_id == b.id).first()
+        leads_payload.append({
+            "id": b.id,
+            "name": b.name,
+            "category": b.category,
+            "address": b.address,
+            "city": b.city,
+            "country": b.country,
+            "phone": b.phone,
+            "email": b.email,
+            "whatsapp": b.whatsapp,
+            "website": b.website,
+            "website_status": b.website_status,
+            "opportunity_score": b.opportunity_score,
+            "opportunity_priority": b.opportunity_priority,
+            "suggested_service": b.suggested_service or (lead.offered_service if lead else "Website Development"),
+            "pipeline_status": lead.status if lead else "Discovered",
+            "lead_id": lead.id if lead else None,
+            "latitude": b.latitude,
+            "longitude": b.longitude,
+        })
+
+    dispatch_event = {
+        "event": "leads_dispatched",
+        "source": payload.source or "web_ui",
+        "count": len(leads_payload),
+        "dispatched_at": datetime.now(timezone.utc).isoformat(),
+        "leads": leads_payload,
+    }
+
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            res = client.post(webhook_url, json=dispatch_event)
+            return {
+                "success": res.status_code < 400,
+                "dispatched_count": len(leads_payload),
+                "webhook_url": webhook_url,
+                "status_code": res.status_code,
+                "message": f"Successfully delivered {len(leads_payload)} lead(s) to n8n webhook",
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "dispatched_count": len(leads_payload),
+            "webhook_url": webhook_url,
+            "detail": f"Delivery error: {str(e)}",
+        }
+

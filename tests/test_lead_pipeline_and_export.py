@@ -342,3 +342,48 @@ def test_search_contact_filter_gmail(client, db_session):
     assert res.status_code == 200
     assert "Gmail Cafe" in res.text
     assert "No Email Cafe" not in res.text
+
+
+def test_update_lead_status_kanban(client, db_session):
+    """Test updating lead status via the Kanban drag-and-drop endpoint."""
+    b = Business(source="osm", source_id="osm:node/8801", name="Kanban Test Salon", city="Lahore", country="Pakistan")
+    db_session.add(b)
+    db_session.commit()
+
+    lead = SavedLead(business_id=b.id, status="New", priority="High Priority")
+    db_session.add(lead)
+    db_session.commit()
+
+    res = client.post(f"/api/leads/{lead.id}/status", json={"status": "Interested"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["status"] == "Interested"
+
+    db_session.refresh(lead)
+    assert lead.status == "Interested"
+
+
+def test_webhook_settings_and_dispatch(client, db_session):
+    """Test saving webhook setting and dispatching businesses to webhook endpoint."""
+    # Step 1: Save webhook URL setting (TestClient follows 303 to 200)
+    res_set = client.post("/api/settings/webhook", data={"webhook_url": "https://httpbin.org/post"}, follow_redirects=False)
+    assert res_set.status_code == 303
+
+
+    # Step 2: Create business and lead
+    b = Business(source="osm", source_id="osm:node/8802", name="Webhook Prospect", city="Peshawar", country="Pakistan", phone="+92 300 1234567")
+    db_session.add(b)
+    db_session.commit()
+
+    # Step 3: Dispatch with custom dummy webhook or mock
+    res_dispatch = client.post("/api/webhook/dispatch", json={
+        "business_ids": [b.id],
+        "custom_webhook_url": "https://httpbin.org/post",
+        "source": "test_suite"
+    })
+    assert res_dispatch.status_code == 200
+    data = res_dispatch.json()
+    assert data["dispatched_count"] == 1
+    assert data["webhook_url"] == "https://httpbin.org/post"
+

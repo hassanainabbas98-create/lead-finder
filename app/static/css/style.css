@@ -346,3 +346,127 @@ body {
     margin-left: 0 !important;
   }
 }
+
+/* Dark Mode Enhancements */
+[data-bs-theme="dark"] {
+  --bg-main: #0b1120;
+  --card-bg: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --primary-light: rgba(16, 185, 129, 0.15);
+  --primary-text: #34d399;
+}
+
+[data-bs-theme="dark"] .topbar {
+  background-color: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-bs-theme="dark"] .table-modern th {
+  background-color: #1e293b;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+[data-bs-theme="dark"] .table-modern td {
+  border-color: #334155;
+}
+
+[data-bs-theme="dark"] .table-modern tbody tr:hover {
+  background-color: #273549;
+}
+
+[data-bs-theme="dark"] .bg-light {
+  background-color: #1e293b !important;
+}
+
+[data-bs-theme="dark"] .border,
+[data-bs-theme="dark"] .border-top,
+[data-bs-theme="dark"] .border-bottom,
+[data-bs-theme="dark"] .border-start,
+[data-bs-theme="dark"] .border-end {
+  border-color: #334155 !important;
+}
+
+[data-bs-theme="dark"] .card-modern {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+/* Kanban Board Styling */
+.kanban-board {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 1.5rem;
+  min-height: 550px;
+}
+
+.kanban-column {
+  flex: 0 0 310px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  max-height: 75vh;
+}
+
+.kanban-column-header {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kanban-cards {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 120px;
+}
+
+.kanban-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.kanban-card.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.kanban-cards.drag-over {
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 2px dashed #10b981;
+  border-radius: 0.5rem;
+}
+
+/* Map View Styling */
+#mapContainer {
+  height: 600px;
+  width: 100%;
+  border-radius: 0.5rem;
+  z-index: 1;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+

@@ -40,3 +40,14 @@ class LeadListCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     description: Optional[str] = None
     color: Optional[str] = "#10b981"
+
+
+class UpdateLeadStatusRequest(BaseModel):
+    status: str
+
+
+class WebhookDispatchRequest(BaseModel):
+    business_ids: List[int]
+    custom_webhook_url: Optional[str] = None
+    source: Optional[str] = "leads_pipeline"
+

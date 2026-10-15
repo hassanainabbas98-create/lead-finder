@@ -12,7 +12,27 @@
             <span class="text-muted">/</span>
             <span class="fw-semibold text-truncate" style="max-width: 300px;">{{ business.name }}</span>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
+            {% if business.phone %}
+            <a href="tel:{{ business.phone }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" title="Call directly">
+                <i class="bi bi-telephone-fill"></i> Call {{ business.phone }}
+            </a>
+            {% set clean_phone = business.phone | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
+            <a href="https://wa.me/{{ clean_phone }}?text=Hi%20{{ business.name | urlencode }}%20team%2C%20I%20noticed%20your%20business%20in%20{{ business.city | urlencode }}..." target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1" title="Launch WhatsApp Web chat">
+                <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+            {% endif %}
+            {% if business.email %}
+                {% if '@gmail.' in business.email.lower() or '@googlemail.' in business.email.lower() %}
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ business.email }}&su={{ ('Partnership proposal for ' ~ business.name ~ ' - digital presence') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" title="Launch Gmail Web compose directly">
+                    <i class="bi bi-google"></i> Gmail Compose
+                </a>
+                {% else %}
+                <a href="mailto:{{ business.email }}?subject={{ ('Partnership proposal for ' ~ business.name ~ ' - digital presence') | urlencode }}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-envelope-at"></i> Send Email
+                </a>
+                {% endif %}
+            {% endif %}
             {% if business.website %}
             <button type="button" class="btn btn-sm btn-outline-primary" onclick="runSingleAudit({{ business.id }})">
                 <i class="bi bi-shield-check me-1"></i> Audit Website
@@ -76,6 +96,143 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label small text-muted">Physical Address</label>
                             <div class="fw-semibold">{{ business.address or 'Address not specified in map' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instant AI Cold Outreach Generator Card -->
+            <div class="card-modern mb-4">
+                <div class="card-header-clean bg-light border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-magic text-success fs-5"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0">Instant AI Cold Outreach Generator</h6>
+                            <small class="text-muted">Pre-written tailored outreach pitches ready for 1-click launch via Email, WhatsApp, or Phone</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-lightning-charge-fill me-1"></i> Ready to Send</span>
+                </div>
+                <div class="card-body p-4">
+                    <ul class="nav nav-pills nav-fill mb-3" id="outreachTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-semibold small" id="email-tab" data-bs-toggle="tab" data-bs-target="#tab-email" type="button" role="tab">
+                                <i class="bi bi-envelope-at me-1"></i> Cold Email Draft
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold small" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#tab-whatsapp" type="button" role="tab">
+                                <i class="bi bi-whatsapp text-success me-1"></i> WhatsApp Icebreaker
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold small" id="phone-tab" data-bs-toggle="tab" data-bs-target="#tab-phone" type="button" role="tab">
+                                <i class="bi bi-telephone text-primary me-1"></i> Phone Talking Points
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="outreachTabContent">
+                        <!-- Cold Email Tab -->
+                        <div class="tab-pane fade show active" id="tab-email" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-muted">Cold Email Subject Line</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control" id="coldEmailSubject" value="Quick idea for {{ business.name }} - {{ recommendation_res.primary_service or 'digital presence & growth' }}" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('coldEmailSubject', 'Subject copied to clipboard!')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-muted">Personalized Cold Email Pitch</label>
+                                <textarea class="form-control font-monospace small" id="coldEmailBody" rows="10" readonly>Hi {{ business.name }} team,
+
+I came across {{ business.name }} while researching top {{ business.category or 'local' }} businesses in {{ business.city or 'your city' }}.
+
+{% if not business.website %}
+I noticed that you currently do not have an official website listed on your local presence. In {{ business.city or 'today\'s market' }}, hundreds of customers search online each week for {{ business.category or 'your services' }}, and without a fast mobile site, those customers often end up going to competitors instead.
+{% elif latest_audit and not latest_audit.is_mobile_friendly %}
+I checked out your current website, and noticed it isn't optimized for modern smartphones or online booking. Over 75% of local searches happen directly on mobile devices.
+{% else %}
+I reviewed your digital profile and see an immediate opportunity to capture 20-30% more customer inquiries with automated client booking and a modern sales funnel.
+{% endif %}
+
+We specialize in helping {{ business.category or 'businesses' }} launch high-converting {{ recommendation_res.primary_service or 'websites and automated customer booking systems' }}—complete with WhatsApp click-to-chat, Google Maps optimization, and direct inquiry capture.
+
+Would you be open to a brief 5-minute chat or a quick 2-minute video walkthrough showing how this could bring new customers to {{ business.name }} this month?
+
+Best regards,
+Lead Prospecting Team</textarea>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-primary-emerald" onclick="copyToClipboard('coldEmailBody', 'Email pitch copied to clipboard!')">
+                                    <i class="bi bi-clipboard-check me-1"></i> Copy Email Pitch
+                                </button>
+                                {% if business.email %}
+                                    {% if '@gmail.' in business.email.lower() or '@googlemail.' in business.email.lower() %}
+                                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ business.email }}&su={{ ('Quick idea for ' ~ business.name ~ ' - ' ~ (recommendation_res.primary_service or 'growth')) | urlencode }}&body={{ ('Hi ' ~ business.name ~ ' team,\n\nI noticed ' ~ business.name ~ ' in ' ~ (business.city or 'your city') ~ ' and had a quick suggestion regarding ' ~ (recommendation_res.primary_service or 'digital presence') ~ '.\n\nWould you be open to a brief 5-minute chat?\n\nBest regards') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-google me-1"></i> Open in Gmail Compose
+                                    </a>
+                                    {% else %}
+                                    <a href="mailto:{{ business.email }}?subject={{ ('Quick idea for ' ~ business.name) | urlencode }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-envelope me-1"></i> Open Mail Client
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp Tab -->
+                        <div class="tab-pane fade" id="tab-whatsapp" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-muted">WhatsApp Icebreaker Message</label>
+                                <textarea class="form-control font-monospace small" id="whatsappPitchText" rows="6" readonly>Hi {{ business.name }} team! 👋
+
+I was looking at {{ business.category or 'local' }} businesses in {{ business.city or 'town' }} and found your listing.
+
+{% if not business.website %}I noticed you don't have an official website or online menu/booking link yet for customers on Google Maps.{% else %}I noticed an opportunity to boost your customer inquiries with automated WhatsApp reservation integration.{% endif %}
+
+We built a quick interactive demo of how {{ business.name }} could get 15-30 more direct customers each week with {{ recommendation_res.primary_service or 'a modern mobile site' }}.
+
+Can I send you a 1-minute screenshot demo right here on WhatsApp?</textarea>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-success" onclick="copyToClipboard('whatsappPitchText', 'WhatsApp message copied!')">
+                                    <i class="bi bi-clipboard-check me-1"></i> Copy WhatsApp Message
+                                </button>
+                                {% if business.phone %}
+                                {% set clean_phone = business.phone | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
+                                <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hi ' ~ business.name ~ ' team! I noticed your business in ' ~ (business.city or 'town') ~ '. Can I share a quick idea about ' ~ (recommendation_res.primary_service or 'customer bookings') ~ '?') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-whatsapp me-1"></i> Launch WhatsApp Web
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Phone Script Tab -->
+                        <div class="tab-pane fade" id="tab-phone" role="tabpanel">
+                            <div class="p-3 bg-light rounded border mb-3">
+                                <div class="mb-2">
+                                    <strong class="text-success small">1. The Hook (5 seconds):</strong>
+                                    <div class="small text-muted">"Hi, is this the owner or manager of <strong>{{ business.name }}</strong>? My name is [Your Name], how are you doing today?"</div>
+                                </div>
+                                <div class="mb-2">
+                                    <strong class="text-success small">2. The Context (15 seconds):</strong>
+                                    <div class="small text-muted">"I was researching top {{ business.category or 'local' }} spots in {{ business.city or 'the city' }}, and I saw that you have a great local presence{% if not business.website %}, but you don't currently have an official website or online ordering link listed on Google Maps{% else %}, but your website could easily capture 2x more inquiries with automated booking{% endif %}."</div>
+                                </div>
+                                <div class="mb-2">
+                                    <strong class="text-success small">3. The Value Offer (20 seconds):</strong>
+                                    <div class="small text-muted">"We build custom {{ recommendation_res.primary_service or 'digital landing pages and WhatsApp booking tools' }} for {{ business.category or 'local companies' }} that make it effortless for customers to book or order directly from their phone."</div>
+                                </div>
+                                <div class="mb-0">
+                                    <strong class="text-success small">4. The Call To Action (10 seconds):</strong>
+                                    <div class="small text-muted">"I don't expect you to decide anything now, but could I send you a 60-second video demo over WhatsApp or email to take a look?"</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyPhoneScript()">
+                                <i class="bi bi-clipboard me-1"></i> Copy Full Phone Script
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -558,6 +715,40 @@ function deleteTaskDirect(taskId) {
             })
             .catch(() => showToast('Error', 'Request failed', 'danger'));
     });
+}
+
+function copyToClipboard(elementId, successMsg) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const text = el.value || el.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to Clipboard', successMsg || 'Copied successfully', 'success');
+        }).catch(() => {
+            el.select();
+            document.execCommand('copy');
+            showToast('Copied to Clipboard', successMsg || 'Copied successfully', 'success');
+        });
+    } else {
+        el.select();
+        document.execCommand('copy');
+        showToast('Copied to Clipboard', successMsg || 'Copied successfully', 'success');
+    }
+}
+
+function copyPhoneScript() {
+    const hook = "1. The Hook: Hi, is this the owner/manager of {{ business.name }}? My name is [Your Name], how are you doing today?";
+    const ctx = "2. The Context: I was researching top {{ business.category or 'local' }} spots in {{ business.city or 'the city' }}, and noticed your great local presence, but you don't have an official website or automated booking link for customers on Google Maps.";
+    const val = "3. The Value Offer: We build custom {{ recommendation_res.primary_service or 'digital landing pages and automated booking tools' }} that bring 15-30 new customers directly from smartphones.";
+    const cta = "4. The Ask: Could I send you a 60-second video demo over WhatsApp or email to take a look?";
+    const fullScript = `${hook}\n\n${ctx}\n\n${val}\n\n${cta}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullScript).then(() => {
+            showToast('Phone Script Copied', 'Full 60-second cold call script copied to clipboard', 'success');
+        });
+    } else {
+        showToast('Copied', 'Phone script copied to clipboard', 'success');
+    }
 }
 </script>
 {% endblock %}
