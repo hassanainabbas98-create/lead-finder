@@ -189,37 +189,37 @@ Lead Prospecting Team</textarea>
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 pb-2 border-bottom gap-2">
                                 <div class="btn-group btn-group-sm" role="group" aria-label="WhatsApp Drip Sequence">
                                     <button type="button" class="btn btn-outline-success active" id="btnWaDrip1" onclick="switchWaDrip(1)">
-                                        <i class="bi bi-1-circle-fill me-1"></i> Day 1: The Hook
+                                        <i class="bi bi-1-circle-fill me-1"></i> Day 1: The Hook (10h &rarr; 10min)
                                     </button>
                                     <button type="button" class="btn btn-outline-success" id="btnWaDrip2" onclick="switchWaDrip(2)">
-                                        <i class="bi bi-2-circle-fill me-1"></i> Day 3: AI & Voice Agent
+                                        <i class="bi bi-2-circle-fill me-1"></i> Day 3: Workflow & AI Agents
                                     </button>
                                     <button type="button" class="btn btn-outline-success" id="btnWaDrip3" onclick="switchWaDrip(3)">
                                         <i class="bi bi-3-circle-fill me-1"></i> Day 5: Breakup Closure
                                     </button>
                                 </div>
                                 <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1">
-                                    <i class="bi bi-robot me-1"></i> Expanded: Web + AI Bots + Voice Agents
+                                    <i class="bi bi-lightning-charge-fill me-1"></i> Web + AI Bots + Voice + Workflow Automation
                                 </span>
                             </div>
 
-                            <!-- Drip Step 1: Day 1 Hook (Web + AI Chatbot) -->
+                            <!-- Drip Step 1: Day 1 Hook (Web, AI Bots & 10h -> 10min Automation) -->
                             <div id="waDripStep1" class="wa-drip-pane">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <label class="form-label small fw-semibold text-muted mb-0">
-                                        <span class="badge bg-success me-1">Day 1</span> Initial Hook & Free Demo Offer
+                                        <span class="badge bg-success me-1">Day 1</span> The 10-Hour to 10-Minute Automation Hook
                                     </label>
                                     <small class="text-muted">Goal: Low-friction permission to send 30-sec demo</small>
                                 </div>
-                                <textarea class="form-control font-monospace small mb-3" id="waDripText1" rows="7" readonly>Hi {{ business.name }} team! 👋
+                                <textarea class="form-control font-monospace small mb-3" id="waDripText1" rows="8" readonly>Hi {{ business.name }} team! 👋
 
-I was looking at top {{ business.category or 'local' }} businesses in {{ business.city or 'your city' }} and found your listing.
+I was looking at top {{ business.category or 'local' }} businesses in {{ business.city or 'your area' }} and had a quick observation.
 
-{% if not business.website %}I saw you don't have an official modern website or automated customer booking link on Google Maps yet.{% else %}I reviewed your digital profile and saw an immediate opportunity to automate customer inquiries.{% endif %}
+Most {{ business.category or 'business' }} owners spend hours each day on repetitive manual grind—answering the same WhatsApp questions, tracking inventory/orders, and manually booking appointments.
 
-We build custom high-speed websites integrated with 24/7 AI WhatsApp Chatbots that answer customer questions, take reservations, and capture bookings even after hours or while your staff is busy.
+We build modern high-speed websites, 24/7 AI WhatsApp Chatbots, Voice Call Agents, and smart Workflow Automations that turn 10 hours of manual daily work into 10 minutes on autopilot.
 
-I created a quick 30-second mobile mockup showing how this works for {{ business.name }}. Mind if I send a quick screenshot demo over here?</textarea>
+I put together a quick 30-second mobile mockup showing how {{ business.name }} could automate daily customer inquiries & operations. Mind if I share a quick screenshot here?</textarea>
 
                                 <div class="d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="copyToClipboard('waDripText1', 'Day 1 Hook message copied!')">
@@ -227,28 +227,30 @@ I created a quick 30-second mobile mockup showing how this works for {{ business
                                     </button>
                                     {% if business.phone or business.whatsapp %}
                                     {% set clean_phone = (business.whatsapp or business.phone) | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
-                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hi ' ~ business.name ~ ' team! 👋\n\nI was looking at top ' ~ (business.category or 'local') ~ ' businesses in ' ~ (business.city or 'town') ~ ' and found your listing.\n\nWe build custom high-speed websites integrated with 24/7 AI WhatsApp Chatbots that answer customer questions and capture bookings automatically.\n\nI created a quick 30-second mobile mockup for ' ~ business.name ~ '. Mind if I send a quick screenshot demo over here?') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hi ' ~ business.name ~ ' team! 👋\n\nI was looking at top ' ~ (business.category or 'local') ~ ' businesses in ' ~ (business.city or 'your area') ~ ' and had a quick observation.\n\nWe build custom websites, 24/7 AI Chatbots, Voice Call Agents, and Workflow Automations that turn 10 hours of repetitive manual work into 10 minutes on autopilot.\n\nI created a quick 30-second mobile mockup showing how ' ~ business.name ~ ' can automate daily inquiries & operations. Mind if I send a quick screenshot demo over here?') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-whatsapp me-1"></i> Launch WhatsApp Web (Day 1)
                                     </a>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <!-- Drip Step 2: Day 3 Follow-up (AI Voice Call Agents & Revenue Loss) -->
+                            <!-- Drip Step 2: Day 3 Follow-up (AI Voice Agents & Inventory/Operations Automation) -->
                             <div id="waDripStep2" class="wa-drip-pane d-none">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <label class="form-label small fw-semibold text-muted mb-0">
-                                        <span class="badge bg-warning text-dark me-1">Day 3</span> AI Voice Agent & Booking Follow-up
+                                        <span class="badge bg-warning text-dark me-1">Day 3</span> Workflow Automation & Voice Agent Proof
                                     </label>
-                                    <small class="text-muted">Goal: Stir FOMO & show automated phone handling</small>
+                                    <small class="text-muted">Goal: Stir FOMO & highlight saving 10+ hours weekly</small>
                                 </div>
-                                <textarea class="form-control font-monospace small mb-3" id="waDripText2" rows="7" readonly>Hey team, quick follow-up on this!
+                                <textarea class="form-control font-monospace small mb-3" id="waDripText2" rows="8" readonly>Hey team, quick follow-up on this!
 
-We recently helped another local {{ business.category or 'business' }} set up an AI Voice Calling Agent & WhatsApp Assistant that answers incoming phone calls, answers customer FAQs, and books appointments 24/7 without needing extra staff.
+We recently helped another local {{ business.category or 'business' }} deploy an AI Voice Calling Agent & Workflow Automation system.
 
-Noticed {{ business.name }} gets high search volume in {{ business.city or 'town' }}, but lots of potential customers slip away during busy rush hours or after closing time when calls go unanswered.
+Now, incoming phone calls are answered 24/7, customer orders/inquiries sync straight into their system, and stock/booking updates happen automatically without touching a keyboard—literally saving their staff 10+ hours of manual work every week.
 
-If you're already 100% fully booked and don't need any new automated orders or clients, no worries at all! But if you'd like to hear a 20-second audio sample of how the AI voice agent answers for {{ business.name }}, just let me know.</textarea>
+Noticed {{ business.name }} has high local interest in {{ business.city or 'town' }}, but so much time gets lost handling routine manual tasks and unanswered calls during busy hours.
+
+If your operations are already 100% automated and you don't need to save manual hours, no worries at all! But if you'd like to see a 20-second demo of how the automation runs for {{ business.name }}, just let me know.</textarea>
 
                                 <div class="d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-sm btn-warning" onclick="copyToClipboard('waDripText2', 'Day 3 AI Follow-up copied!')">
@@ -256,7 +258,7 @@ If you're already 100% fully booked and don't need any new automated orders or c
                                     </button>
                                     {% if business.phone or business.whatsapp %}
                                     {% set clean_phone = (business.whatsapp or business.phone) | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
-                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hey ' ~ business.name ~ ' team, quick follow-up!\n\nWe recently set up an AI Voice Agent & WhatsApp Assistant for a local ' ~ (business.category or 'business') ~ ' that handles customer calls and books appointments 24/7.\n\nIf you would like to hear a 20-second sample of how the AI voice agent sounds for ' ~ business.name ~ ', let me know!') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-warning text-dark">
+                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hey ' ~ business.name ~ ' team, quick follow-up!\n\nWe recently set up an AI Voice Agent & Workflow Automation system for a local ' ~ (business.category or 'business') ~ ' that handles calls and syncs orders/bookings automatically—saving 10+ hours of manual work every week.\n\nIf you would like to see a 20-second demo of how the automation runs for ' ~ business.name ~ ', let me know!') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-warning text-dark">
                                         <i class="bi bi-whatsapp me-1"></i> Launch WhatsApp Web (Day 3)
                                     </a>
                                     {% endif %}
@@ -271,11 +273,11 @@ If you're already 100% fully booked and don't need any new automated orders or c
                                     </label>
                                     <small class="text-muted">Goal: Psychological pull-away (highest reply rate)</small>
                                 </div>
-                                <textarea class="form-control font-monospace small mb-3" id="waDripText3" rows="7" readonly>Hey {{ business.name }} team, assuming custom websites, 24/7 AI chatbots, and voice call agents aren't a priority for your business right now, so I will step back and won't follow up again!
+                                <textarea class="form-control font-monospace small mb-3" id="waDripText3" rows="8" readonly>Hey {{ business.name }} team, assuming custom websites, 24/7 AI chatbots, voice call agents, and turning 10 hours of manual workflow into 10 minutes aren't a priority right now, I'll step back and won't follow up again!
 
-If you ever decide down the road that you want to automate customer bookings on WhatsApp, launch an AI voice agent for after-hours calls, or upgrade your online presence, feel free to keep my contact handy.
+If you ever decide down the road that you want to eliminate repetitive paperwork, automate customer orders/bookings, or set up an AI phone assistant, feel free to keep my contact handy.
 
-Wishing you and the team continued growth and success in {{ business.city or 'town' }}! 🙌</textarea>
+Wishing you and the team massive growth and effortless operations in {{ business.city or 'town' }}! 🙌</textarea>
 
                                 <div class="d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-sm btn-secondary" onclick="copyToClipboard('waDripText3', 'Day 5 Breakup message copied!')">
@@ -283,7 +285,7 @@ Wishing you and the team continued growth and success in {{ business.city or 'to
                                     </button>
                                     {% if business.phone or business.whatsapp %}
                                     {% set clean_phone = (business.whatsapp or business.phone) | replace(' ', '') | replace('-', '') | replace('(', '') | replace(')', '') | replace('+', '') %}
-                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hey ' ~ business.name ~ ' team, assuming AI chatbots, voice call agents, or websites aren\'t a priority right now, I won\'t follow up again! Feel free to save my number if you ever want to automate bookings or phone calls down the road. Wishing you continued success!') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+                                    <a href="https://wa.me/{{ clean_phone }}?text={{ ('Hey ' ~ business.name ~ ' team, assuming websites, AI chatbots, voice call agents, and turning 10 hours of manual work into 10 minutes aren\'t a priority right now, I won\'t follow up again! Feel free to save my number if you ever want to automate your operations down the road. Wishing you continued success!') | urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-whatsapp me-1"></i> Launch WhatsApp Web (Day 5)
                                     </a>
                                     {% endif %}
