@@ -1,5 +1,12 @@
 """Main FastAPI application factory and configuration."""
 
+import socket
+import urllib3.util.connection as urllib3_cn
+
+# Force IPv4 socket resolution globally for urllib3 to prevent [Errno 101] Network is unreachable
+# in cloud container environments (like Render) that lack outbound IPv6 routing.
+urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles

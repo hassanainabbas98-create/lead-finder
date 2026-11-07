@@ -130,16 +130,21 @@ def resolve_osm_tags(category_query: str) -> Tuple[List[str], bool, str, str]:
     cleaned = category_query.strip().lower()
     stem = stem_category_word(cleaned)
 
-    # 1. Check exact key or alias matches
+    # 1. Exact match on main key or aliases
     for key, data in CATEGORY_TAG_MAP.items():
-        aliases = data.get("aliases", [key])
-        if (
-            key == cleaned
-            or key == stem
-            or cleaned in aliases
-            or stem in aliases
-            or any(a in cleaned or cleaned in a or a in stem or stem in a for a in aliases)
-        ):
+        aliases = [a.lower() for a in data.get("aliases", [key])]
+        if key == cleaned or key == stem or cleaned in aliases or stem in aliases:
+            return (
+                data["tags"],
+                True,
+                data["display_name"],
+                data["default_service"],
+            )
+
+    # 2. Substring or word match across aliases
+    for key, data in CATEGORY_TAG_MAP.items():
+        aliases = [a.lower() for a in data.get("aliases", [key])]
+        if any(a in cleaned or cleaned in a or a in stem or stem in a for a in aliases):
             return (
                 data["tags"],
                 True,

@@ -21,11 +21,11 @@ class Settings(BaseSettings):
     # Discovery / OSM Overpass settings
     OVERPASS_SERVERS: Union[List[str], str] = [
         "https://overpass-api.de/api/interpreter",
-        "https://overpass.kumi.systems/api/interpreter",
-        "https://lz4.overpass-api.de/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     ]
-    NOMINATIM_USER_AGENT: str = "BusinessOpportunityFinder/1.0"
-    OVERPASS_TIMEOUT_SECONDS: int = 60
+    NOMINATIM_USER_AGENT: str = "BusinessOpportunityFinder/1.0 (https://hasin8n.me; contact: admin@hasin8n.me)"
+    OVERPASS_TIMEOUT_SECONDS: int = 15
     DEFAULT_SEARCH_MAX_RESULTS: int = 100
 
     # Website audit / Scraping settings
