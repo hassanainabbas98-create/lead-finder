@@ -66,6 +66,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Register all page and API routers
+@app.get("/api/version")
+def get_version():
+    return {"version": "1.0.1", "status": "IPv4 forced + Nominatim fallback active"}
+
+
 app.include_router(dashboard_router)
 app.include_router(search_router)
 app.include_router(leads_router)
