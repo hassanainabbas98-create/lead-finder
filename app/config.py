@@ -25,7 +25,7 @@ class Settings(BaseSettings):
         "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     ]
     NOMINATIM_USER_AGENT: str = "BusinessOpportunityFinder/1.0 (https://hasin8n.me; contact: admin@hasin8n.me)"
-    OVERPASS_TIMEOUT_SECONDS: int = 8
+    OVERPASS_TIMEOUT_SECONDS: int = 4
     DEFAULT_SEARCH_MAX_RESULTS: int = 100
 
     # Website audit / Scraping settings
