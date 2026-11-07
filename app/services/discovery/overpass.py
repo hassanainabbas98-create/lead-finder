@@ -35,7 +35,7 @@ class OverpassDiscoveryProvider(BaseDiscoveryProvider):
                 "https://overpass.private.coffee/api/interpreter",
                 "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
             ]
-        self.timeout_seconds = timeout_seconds or getattr(settings, "OVERPASS_TIMEOUT_SECONDS", 15)
+        self.timeout_seconds = timeout_seconds or getattr(settings, "OVERPASS_TIMEOUT_SECONDS", 8)
 
     def search_businesses(
         self,
