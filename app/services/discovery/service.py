@@ -48,7 +48,7 @@ class DiscoveryService:
 
         if not records:
             return {
-                "success": False,
+                "success": True,
                 "businesses": [],
                 "total_found": 0,
                 "new_count": 0,

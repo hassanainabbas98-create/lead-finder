@@ -127,7 +127,7 @@ out center {query_limit};"""
         # Step 5: High-availability fallback to OpenStreetMap Nominatim Search Engine
         # When Overpass community servers are overloaded, busy, or unreachable,
         # fallback to the official OpenStreetMap Nominatim search API.
-        logger.info(f"Overpass mirrors failed or timed out ({last_error}). Falling back to OSM Nominatim search...")
+        logger.info(f"Overpass mirrors completed or timed out ({last_error}). Checking OSM search engine...")
         nominatim_records = self._search_via_nominatim(
             category=category,
             friendly_category=friendly_category,
@@ -141,7 +141,12 @@ out center {query_limit};"""
             status_msg = f"Successfully retrieved {len(nominatim_records)} records via OpenStreetMap search engine"
             return (nominatim_records, "osm-search-engine", status_msg)
 
-        return ([], "all_mirrors_failed", f"Overpass query could not be completed: {last_error}")
+        clean_loc = f"{city}, {country}" if not state else f"{city}, {state}, {country}"
+        friendly_msg = (
+            f"No business records currently indexed in OpenStreetMap for '{category}' in {clean_loc}. "
+            "Try a related category (e.g. clinic, doctor, shop, restaurant, salon)."
+        )
+        return ([], "osm", friendly_msg)
 
     def _normalize_elements(
         self,
@@ -294,107 +299,114 @@ out center {query_limit};"""
         all_records: List[DiscoveredRecord] = []
         seen_ids = set()
 
-        for term in search_terms[:2]:
+        for term in search_terms[:3]:
             loc_str = f"{city}, {country}" if not state else f"{city}, {state}, {country}"
-            query_str = f"{term} in {loc_str}"
-            url = "https://nominatim.openstreetmap.org/search"
-            params = {
-                "q": query_str,
-                "format": "json",
-                "limit": min(max_results * 2, 50),
-                "addressdetails": 1,
-                "extratags": 1,
-            }
-            headers = {
-                "User-Agent": settings.NOMINATIM_USER_AGENT,
-                "Accept": "application/json",
-            }
+            queries_to_try = [
+                f"{term} {city} {country}",
+                f"{term} in {loc_str}",
+            ]
+            for query_str in queries_to_try:
+                url = "https://nominatim.openstreetmap.org/search"
+                params = {
+                    "q": query_str,
+                    "format": "json",
+                    "limit": min(max_results * 2, 50),
+                    "addressdetails": 1,
+                    "extratags": 1,
+                }
+                headers = {
+                    "User-Agent": settings.NOMINATIM_USER_AGENT,
+                    "Accept": "application/json",
+                }
 
-            try:
-                resp = requests.get(url, params=params, headers=headers, timeout=12)
-                if resp.status_code != 200:
-                    continue
-                items = resp.json()
-                if not isinstance(items, list):
-                    continue
-
-                for item in items:
-                    if len(all_records) >= max_results:
-                        break
-
-                    osm_type = item.get("osm_type", "node")
-                    osm_id = item.get("osm_id", "")
-                    source_id = f"osm:{osm_type}/{osm_id}"
-                    if source_id in seen_ids:
+                try:
+                    resp = requests.get(url, params=params, headers=headers, timeout=6)
+                    if resp.status_code != 200:
                         continue
-                    seen_ids.add(source_id)
+                    items = resp.json()
+                    if not isinstance(items, list):
+                        continue
 
-                    name = item.get("name")
-                    if not name:
-                        display = item.get("display_name", "").split(",")[0].strip()
-                        name = display if display else f"Unnamed {friendly_category}"
+                    for item in items:
+                        if len(all_records) >= max_results:
+                            break
 
-                    lat = float(item.get("lat")) if item.get("lat") else None
-                    lon = float(item.get("lon")) if item.get("lon") else None
+                        osm_type = item.get("osm_type", "node")
+                        osm_id = item.get("osm_id", "")
+                        source_id = f"osm:{osm_type}/{osm_id}"
+                        if source_id in seen_ids:
+                            continue
+                        seen_ids.add(source_id)
 
-                    address_dict = item.get("address", {})
-                    street = address_dict.get("road") or address_dict.get("street")
-                    elem_city = address_dict.get("city") or address_dict.get("town") or address_dict.get("suburb") or city
-                    elem_country = address_dict.get("country") or country
-                    postcode = address_dict.get("postcode")
+                        name = item.get("name")
+                        if not name:
+                            display = item.get("display_name", "").split(",")[0].strip()
+                            name = display if display else f"Unnamed {friendly_category}"
 
-                    addr_parts = [p for p in [street, elem_city, postcode] if p]
-                    address = ", ".join(addr_parts) if addr_parts else item.get("display_name")
+                        lat = float(item.get("lat")) if item.get("lat") else None
+                        lon = float(item.get("lon")) if item.get("lon") else None
 
-                    extratags = item.get("extratags") or {}
-                    website = (
-                        extratags.get("website")
-                        or extratags.get("contact:website")
-                        or extratags.get("url")
-                    )
-                    if website:
-                        website = website.strip()
-                        if not (website.startswith("http://") or website.startswith("https://")):
-                            website = "https://" + website
+                        address_dict = item.get("address", {})
+                        street = address_dict.get("road") or address_dict.get("street")
+                        elem_city = address_dict.get("city") or address_dict.get("town") or address_dict.get("suburb") or city
+                        elem_country = address_dict.get("country") or country
+                        postcode = address_dict.get("postcode")
 
-                    phone = (
-                        extratags.get("phone")
-                        or extratags.get("contact:phone")
-                        or extratags.get("mobile")
-                    )
-                    email = (
-                        extratags.get("email")
-                        or extratags.get("contact:email")
-                    )
-                    whatsapp = (
-                        extratags.get("whatsapp")
-                        or extratags.get("contact:whatsapp")
-                    )
+                        addr_parts = [p for p in [street, elem_city, postcode] if p]
+                        address = ", ".join(addr_parts) if addr_parts else item.get("display_name")
 
-                    rec = DiscoveredRecord(
-                        source="osm",
-                        source_id=source_id,
-                        name=name.strip(),
-                        category=friendly_category or category,
-                        address=address,
-                        city=elem_city.strip() if elem_city else city,
-                        country=elem_country.strip() if elem_country else country,
-                        latitude=lat,
-                        longitude=lon,
-                        website=website,
-                        website_status="Website Found" if website else "No Website Listed",
-                        phone=phone.strip() if phone else None,
-                        email=email.strip().lower() if email else None,
-                        whatsapp=whatsapp.strip() if whatsapp else None,
-                        raw_data=extratags,
-                    )
-                    all_records.append(rec)
+                        extratags = item.get("extratags") or {}
+                        website = (
+                            extratags.get("website")
+                            or extratags.get("contact:website")
+                            or extratags.get("url")
+                        )
+                        if website:
+                            website = website.strip()
+                            if not (website.startswith("http://") or website.startswith("https://")):
+                                website = "https://" + website
+
+                        phone = (
+                            extratags.get("phone")
+                            or extratags.get("contact:phone")
+                            or extratags.get("mobile")
+                        )
+                        email = (
+                            extratags.get("email")
+                            or extratags.get("contact:email")
+                        )
+                        whatsapp = (
+                            extratags.get("whatsapp")
+                            or extratags.get("contact:whatsapp")
+                        )
+
+                        rec = DiscoveredRecord(
+                            source="osm",
+                            source_id=source_id,
+                            name=name.strip(),
+                            category=friendly_category or category,
+                            address=address,
+                            city=elem_city.strip() if elem_city else city,
+                            country=elem_country.strip() if elem_country else country,
+                            latitude=lat,
+                            longitude=lon,
+                            website=website,
+                            website_status="Website Found" if website else "No Website Listed",
+                            phone=phone.strip() if phone else None,
+                            email=email.strip().lower() if email else None,
+                            whatsapp=whatsapp.strip() if whatsapp else None,
+                            raw_data=extratags,
+                        )
+                        all_records.append(rec)
+
+                except Exception as e:
+                    logger.warning(f"Nominatim fallback search failed for '{query_str}': {e}")
+                    continue
 
                 if len(all_records) >= max_results:
                     break
 
-            except Exception as e:
-                logger.warning(f"Nominatim fallback search failed for '{query_str}': {e}")
-                continue
+            if len(all_records) >= max_results:
+                break
 
         return all_records
